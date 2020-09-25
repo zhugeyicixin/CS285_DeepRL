@@ -9,6 +9,8 @@ import numpy as np
 import torch
 from torch import distributions
 
+from typing import Union
+
 from cs285.infrastructure import pytorch_util as ptu
 from cs285.policies.base_policy import BasePolicy
 
@@ -48,24 +50,32 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             self.logits_na.to(ptu.device)
             self.mean_net = None
             self.logstd = None
-            self.optimizer = optim.Adam(self.logits_na.parameters(),
-                                        self.learning_rate)
+            self.optimizer = optim.Adam(
+                self.logits_na.parameters(),
+                self.learning_rate
+            )
         else:
             self.logits_na = None
             self.mean_net = ptu.build_mlp(
                 input_size=self.ob_dim,
                 output_size=self.ac_dim,
-                n_layers=self.n_layers, size=self.size,
+                n_layers=self.n_layers,
+                size=self.size,
             )
             self.mean_net.to(ptu.device)
-            self.logstd = nn.Parameter(
-                torch.zeros(self.ac_dim, dtype=torch.float32, device=ptu.device)
-            )
-            self.logstd.to(ptu.device)
+            # TODO: shouldn't logstd also be a NN?
+            self.logstd = nn.Parameter(torch.zeros(
+                self.ac_dim, dtype=torch.float32, device=ptu.device
+            ))
             self.optimizer = optim.Adam(
                 itertools.chain([self.logstd], self.mean_net.parameters()),
                 self.learning_rate
             )
+            self.normal_dist = distributions.Normal(
+                ptu.from_numpy(0.0),
+                ptu.from_numpy(1.0)
+            )
+
 
     ##################################
 
@@ -81,7 +91,11 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             observation = obs[None]
 
         # TODO return the action that the policy prescribes
-        raise NotImplementedError
+        acs = self.forward(observation)
+        if self.discrete:
+            acs = (acs > 0).to(torch.float32)
+
+        return ptu.to_numpy(acs)
 
     # update/train this policy
     def update(self, observations, actions, **kwargs):
@@ -92,8 +106,29 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # through it. For example, you can return a torch.FloatTensor. You can also
     # return more flexible objects, such as a
     # `torch.distributions.Distribution` object. It's up to you!
-    def forward(self, observation: torch.FloatTensor) -> Any:
-        raise NotImplementedError
+    def forward(
+        self,
+        observation: Union[np.ndarray, torch.Tensor]
+    ) -> Any:
+
+        if not isinstance(observation, torch.Tensor):
+            observation = ptu.from_numpy(observation)
+
+        if self.discrete:
+            # output logits
+            output = self.logits_na(observation)
+        else:
+            output_mean = self.mean_net(observation)
+
+            # suppose self.logstd is real logstd
+            output_logstd = self.logstd
+            output_std = torch.exp(output_logstd)
+
+            # sample a N(0, 1) normal distribution
+            epsilon = self.normal_dist.sample(output_mean.shape)
+            output = output_mean + output_std * epsilon
+
+        return output
 
 
 #####################################################
@@ -102,6 +137,7 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 class MLPPolicySL(MLPPolicy):
     def __init__(self, ac_dim, ob_dim, n_layers, size, **kwargs):
         super().__init__(ac_dim, ob_dim, n_layers, size, **kwargs)
+        # TODO: maybe cross entropy loss for discrete cases
         self.loss = nn.MSELoss()
 
     def update(
@@ -109,7 +145,18 @@ class MLPPolicySL(MLPPolicy):
             adv_n=None, acs_labels_na=None, qvals=None
     ):
         # TODO: update the policy and return the loss
-        loss = TODO
+
+        if not isinstance(observations, torch.Tensor):
+            observations = ptu.from_numpy(observations)
+        if not isinstance(actions, torch.Tensor):
+            actions = ptu.from_numpy(actions)
+
+        y = self.forward(observations)
+        loss = self.loss(y, actions)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
         return {
             # You can add extra logging information here, but keep this line
             'Training Loss': ptu.to_numpy(loss),

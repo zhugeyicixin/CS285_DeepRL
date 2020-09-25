@@ -1,57 +1,11 @@
 import os
+import shlex
 import time
+import argparse
 
-from cs285.infrastructure.rl_trainer import RL_Trainer
-from cs285.agents.bc_agent import BCAgent
-from cs285.policies.loaded_gaussian_policy import LoadedGaussianPolicy
+from cs285.scripts.run_hw1 import BC_Trainer
 
-class BC_Trainer(object):
-
-    def __init__(self, params):
-
-        #######################
-        ## AGENT PARAMS
-        #######################
-
-        agent_params = {
-            'n_layers': params['n_layers'],
-            'size': params['size'],
-            'learning_rate': params['learning_rate'],
-            'max_replay_buffer_size': params['max_replay_buffer_size'],
-            }
-
-        self.params = params
-        self.params['agent_class'] = BCAgent ## HW1: you will modify this
-        self.params['agent_params'] = agent_params
-
-        ################
-        ## RL TRAINER
-        ################
-
-        self.rl_trainer = RL_Trainer(self.params) ## HW1: you will modify this
-
-        #######################
-        ## LOAD EXPERT POLICY
-        #######################
-
-        print('Loading expert policy from...', self.params['expert_policy_file'])
-        self.loaded_expert_policy = LoadedGaussianPolicy(self.params['expert_policy_file'])
-        print('Done restoring expert policy...')
-
-    def run_training_loop(self):
-
-        self.rl_trainer.run_training_loop(
-            n_iter=self.params['n_iter'],
-            initial_expertdata=self.params['expert_data'],
-            collect_policy=self.rl_trainer.agent.actor,
-            eval_policy=self.rl_trainer.agent.actor,
-            relabel_with_expert=self.params['do_dagger'],
-            expert_policy=self.loaded_expert_policy,
-        )
-
-
-def main():
-    import argparse
+def get_argument_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--expert_policy_file', '-epf', type=str, required=True)  # relative to where you're running this script from
     parser.add_argument('--expert_data', '-ed', type=str, required=True) #relative to where you're running this script from
@@ -80,7 +34,21 @@ def main():
     parser.add_argument('--max_replay_buffer_size', type=int, default=1000000)
     parser.add_argument('--save_params', action='store_true')
     parser.add_argument('--seed', type=int, default=1)
-    args = parser.parse_args()
+    return parser
+
+def parse_command(cmd):
+    cmd_parser = get_argument_parser()
+    argument_list = shlex.split(cmd)
+    argument_list = argument_list[2:]
+    try:
+        args = cmd_parser.parse_args(argument_list)
+    except:
+        raise AttributeError('Command parse error: \n{}\n'.format(cmd))
+        # print(tmp_result['command'])
+    return args
+
+def train_w_parameters(cmd):
+    args = parse_command(cmd)
 
     # convert args to dictionary
     params = vars(args)
@@ -117,4 +85,69 @@ def main():
     trainer.run_training_loop()
 
 if __name__ == "__main__":
-    main()
+    all_cmds = []
+    os.chdir('../../')
+
+    # bc_ant
+    all_cmds.append('''
+        python cs285/scripts/run_hw1.py
+        --expert_policy_file cs285/policies/experts/Ant.pkl
+        --env_name Ant-v2 --exp_name bc_ant --n_iter 1
+        --expert_data cs285/expert_data/expert_data_Ant-v2.pkl
+        --ep_len 1000 --eval_batch_size 5000
+        --num_agent_train_steps_per_iter 2000
+        --video_log_freq -1
+    ''')
+
+    # bc_humanoid
+    all_cmds.append('''
+        python cs285/scripts/run_hw1.py
+        --expert_policy_file cs285/policies/experts/Humanoid.pkl
+        --env_name Humanoid-v2 --exp_name bc_humanoid --n_iter 1
+        --expert_data cs285/expert_data/expert_data_Humanoid-v2.pkl
+        --ep_len 1000 --eval_batch_size 5000
+        --num_agent_train_steps_per_iter 2000
+        --video_log_freq -1
+    ''')
+
+    # dagger_ant
+    all_cmds.append('''
+        python cs285/scripts/run_hw1.py 
+        --expert_policy_file cs285/policies/experts/Ant.pkl 
+        --env_name Ant-v2 --exp_name dagger_ant --n_iter 21 
+        --do_dagger --expert_data cs285/expert_data/expert_data_Ant-v2.pkl 
+        --ep_len 1000 --eval_batch_size 5000 
+        --num_agent_train_steps_per_iter 2000 
+        --batch_size 5000 
+        --video_log_freq -1
+    ''')
+
+    # dagger_humanoid
+    all_cmds.append('''
+        python cs285/scripts/run_hw1.py 
+        --expert_policy_file cs285/policies/experts/Humanoid.pkl 
+        --env_name Humanoid-v2 --exp_name dagger_humanoid --n_iter 21 
+        --do_dagger --expert_data cs285/expert_data/expert_data_Humanoid-v2.pkl 
+        --ep_len 1000 --eval_batch_size 5000 
+        --num_agent_train_steps_per_iter 2000 
+        --batch_size 5000 
+        --video_log_freq -1
+    ''')
+
+    all_nums = list(range(100, 1000, 100)) + list(range(1000, 10000, 1000))
+    for iter_num in all_nums:
+        # bc_ant
+        all_cmds.append('''
+            python cs285/scripts/run_hw1.py
+            --expert_policy_file cs285/policies/experts/Ant.pkl
+            --env_name Ant-v2 --exp_name bc_ant_{iter_num} --n_iter 1
+            --expert_data cs285/expert_data/expert_data_Ant-v2.pkl
+            --ep_len 1000 --eval_batch_size 5000
+            --num_agent_train_steps_per_iter {iter_num}
+            --video_log_freq -1
+            '''.format(iter_num=iter_num)
+        )
+
+    for cmd in all_cmds:
+        train_w_parameters(cmd)
+

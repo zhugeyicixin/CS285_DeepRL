@@ -1,2 +1,6 @@
 *.pyc
 data/
+scratch/
+cache/
+*egg-info/
+.idea/

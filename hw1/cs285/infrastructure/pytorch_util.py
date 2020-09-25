@@ -2,6 +2,7 @@ from typing import Union
 
 import torch
 from torch import nn
+import numpy as np
 
 Activation = Union[str, nn.Module]
 
@@ -47,7 +48,31 @@ def build_mlp(
 
     # TODO: return a MLP. This should be an instance of nn.Module
     # Note: nn.Sequential is an instance of nn.Module.
-    raise NotImplementedError
+
+    all_layers = []
+
+    _in_dim = input_size
+    _out_dim = size
+    # hidden layers
+    for _ in range(n_layers):
+        all_layers.append(nn.Linear(
+            in_features=_in_dim,
+            out_features=_out_dim,
+        ))
+        all_layers.append(activation)
+        _in_dim = _out_dim
+
+    # output layers
+    _out_dim = output_size
+    all_layers.append(nn.Linear(
+        in_features=_in_dim,
+        out_features=_out_dim,
+    ))
+    all_layers.append(output_activation)
+
+    mlp = nn.Sequential(*all_layers)
+
+    return mlp
 
 
 device = None
@@ -67,8 +92,8 @@ def set_device(gpu_id):
     torch.cuda.set_device(gpu_id)
 
 
-def from_numpy(*args, **kwargs):
-    return torch.from_numpy(*args, **kwargs).float().to(device)
+def from_numpy(num_var, *args, **kwargs):
+    return torch.from_numpy(np.array(num_var), *args, **kwargs).float().to(device)
 
 
 def to_numpy(tensor):

@@ -51,6 +51,7 @@ class ReplayBuffer(object):
                 if isinstance(rewards, list):
                     self.rews += rewards
                 else:
+                    # TODO: what is this?
                     self.rews.append(rewards)
                 self.rews = self.rews[-self.max_size:]
             self.next_obs = np.concatenate(
@@ -77,7 +78,22 @@ class ReplayBuffer(object):
         ## HINT 2: return corresponding data points from each array (i.e., not different indices from each array)
         ## HINT 3: look at the sample_recent_data function below
 
-        return TODO, TODO, TODO, TODO, TODO
+        replace_in_sampling = False
+        if self.obs.shape[0] < batch_size:
+            replace_in_sampling = True
+        sampled_indices = np.random.choice(
+            self.obs.shape[0],
+            size=batch_size,
+            replace=replace_in_sampling,
+        )
+
+        return (
+            self.obs[sampled_indices],
+            self.acs[sampled_indices],
+            self.rews[sampled_indices],
+            self.next_obs[sampled_indices],
+            self.terminals[sampled_indices],
+        )
 
     def sample_recent_data(self, batch_size=1):
         return (
