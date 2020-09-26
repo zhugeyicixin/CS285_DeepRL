@@ -3,7 +3,7 @@ import numpy as np
 from .base_agent import BaseAgent
 from cs285.policies.MLP_policy import MLPPolicyPG
 from cs285.infrastructure.replay_buffer import ReplayBuffer
-
+from cs285.infrastructure.utils import normalize
 
 class PGAgent(BaseAgent):
     def __init__(self, env, agent_params):
@@ -46,7 +46,9 @@ class PGAgent(BaseAgent):
 
         # TODO: step 3: use all datapoints (s_t, a_t, q_t, adv_t) to update the PG actor/policy
         ## HINT: `train_log` should be returned by your actor update method
-        train_log = TODO
+        train_log = self.actor.update(
+            observations, actions, advantages
+        )
 
         return train_log
 
@@ -54,6 +56,8 @@ class PGAgent(BaseAgent):
 
         """
             Monte Carlo estimation of the Q function.
+
+        :return: (batch_size, seq_len) or (batch_size, seq_len, None)
         """
 
         # Case 1: trajectory-based PG
@@ -91,7 +95,7 @@ class PGAgent(BaseAgent):
             ## have the same mean and standard deviation as the current batch of q_values
             baselines = baselines_unnormalized * np.std(q_values) + np.mean(q_values)
             ## TODO: compute advantage estimates using q_values and baselines
-            advantages = TODO
+            advantages = q_values - baselines
 
         # Else, just set the advantage to [Q]
         else:
@@ -102,7 +106,11 @@ class PGAgent(BaseAgent):
             ## TODO: standardize the advantages to have a mean of zero
             ## and a standard deviation of one
             ## HINT: there is a `normalize` function in `infrastructure.utils`
-            advantages = TODO
+            advantages = normalize(
+                data=advantages,
+                mean=np.mean(advantages),
+                std=np.std(advantages)
+            )
 
         return advantages
 
@@ -113,6 +121,7 @@ class PGAgent(BaseAgent):
         self.replay_buffer.add_rollouts(paths)
 
     def sample(self, batch_size):
+        # TODO: why it is not sample_recent_rollouts?
         return self.replay_buffer.sample_recent_data(batch_size, concat_rew=False)
 
     #####################################################
@@ -132,6 +141,12 @@ class PGAgent(BaseAgent):
         # Hint: note that all entries of this output are equivalent
             # because each sum is from 0 to T (and doesnt involve t)
 
+        # valid for both 1D and 2D input
+        list_of_discounted_returns = np.zeros_like(rewards)
+        coeff = np.power(self.gamma, np.arange(len(rewards)))
+        sum_0_T = coeff @ rewards
+        list_of_discounted_returns += sum_0_T
+
         return list_of_discounted_returns
 
     def _discounted_cumsum(self, rewards):
@@ -146,6 +161,12 @@ class PGAgent(BaseAgent):
             # because the summation happens over [t, T] instead of [0, T]
         # HINT2: it is possible to write a vectorized solution, but a solution
             # using a for loop is also fine
+
+        # valid for both 1D and 2D input
+        coeff = np.power(self.gamma, np.arange(len(rewards)))
+        weighted_rewards = (rewards.T * coeff).T
+        list_of_discounted_cumsums = np.cumsum(weighted_rewards, axis=0)
+        list_of_discounted_cumsums = (list_of_discounted_cumsums.T / coeff).T
 
         return list_of_discounted_cumsums
 

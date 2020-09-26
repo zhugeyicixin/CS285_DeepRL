@@ -1,8 +1,11 @@
 from collections import OrderedDict
-import pickle
 import os
-import sys
+import pickle
+import warnings
+from collections import OrderedDict
+import numpy as np
 import time
+import json
 
 import gym
 from gym import wrappers
@@ -105,6 +108,7 @@ class RL_Trainer(object):
         # init vars at beginning of training
         self.total_envsteps = 0
         self.start_time = time.time()
+        all_logs = []
 
         for itr in range(n_iter):
             print("\n\n********** Iteration %i ************"%itr)
@@ -141,21 +145,113 @@ class RL_Trainer(object):
             if self.logvideo or self.logmetrics:
                 # perform logging
                 print('\nBeginning logging procedure...')
-                self.perform_logging(itr, paths, eval_policy, train_video_paths, train_logs)
+                logs = self.perform_logging(
+                    itr, paths, eval_policy, train_video_paths, train_logs
+                )
+
+                logs['itr'] = itr
+                for k in logs:
+                    if isinstance(logs[k], np.object):
+                        logs[k] = float(logs[k])
+                all_logs.append(logs)
 
                 if self.params['save_params']:
                     self.agent.save('{}/agent_itr_{}.pt'.format(self.params['logdir'], itr))
 
+        with open(
+            'data/{}.json'.format(self.params['exp_name']),
+            'w'
+        ) as fw:
+            json.dump(all_logs, fw, indent=2)
+
     ####################################
     ####################################
 
-    def collect_training_trajectories(self, itr, load_initial_expertdata, collect_policy, batch_size):
+    def collect_training_trajectories(
+        self,
+        itr,
+        load_initial_expertdata,
+        collect_policy,
+        batch_size
+    ):
+        """
+        :param itr:
+        :param load_initial_expertdata:  path to expert data pkl file
+        :param collect_policy:  the current policy using which we collect data
+        :param batch_size:  the number of transitions we collect
+        :return:
+            paths: a list trajectories
+            envsteps_this_batch: the sum over the numbers of environment steps in paths
+            train_video_paths: paths which also contain videos for visualization purposes
+        """
         # TODO: get this from hw1
         # if your load_initial_expertdata is None, then you need to collect new trajectories at *every* iteration
+
+        paths = []
+        envsteps_this_batch = 0
+
+        if (load_initial_expertdata is not None and itr == 0):
+            if os.path.exists(load_initial_expertdata):
+                expert_paths = pickle.load(open(load_initial_expertdata, 'rb'))
+                paths.extend(expert_paths)
+                envsteps_this_batch += sum([utils.get_pathlength(p) for p in expert_paths])
+            else:
+                warnings.warn(
+                    "load_initial_expertdata file {} not found!".format(
+                        load_initial_expertdata
+                    )
+                )
+
+        if (
+            envsteps_this_batch < batch_size
+            and (load_initial_expertdata is None or itr > 0)
+        ):
+            # HINT1: use sample_trajectories from utils
+            # HINT2: you want each of these collected rollouts to be of length self.params['ep_len']
+            print("\nCollecting data to be used for training...")
+            exp_paths, exp_envsteps = utils.sample_trajectories(
+                env=self.env,
+                policy=collect_policy,
+                min_timesteps_per_batch=batch_size-envsteps_this_batch,
+                max_path_length=self.params['ep_len'],
+                render=False
+            )
+            paths.extend(exp_paths)
+            envsteps_this_batch += exp_envsteps
+
+        # collect more rollouts with the same policy, to be saved as videos in tensorboard
+        # note: here, we collect MAX_NVIDEO rollouts, each of length MAX_VIDEO_LEN
+        train_video_paths = None
+        if self.log_video:
+            print('\nCollecting train rollouts to be used for saving videos...')
+            train_video_paths = utils.sample_n_trajectories(self.env, collect_policy, MAX_NVIDEO, MAX_VIDEO_LEN, True)
+
         return paths, envsteps_this_batch, train_video_paths
 
     def train_agent(self):
         # TODO: get this from hw1
+
+        print('\nTraining agent using sampled data from replay buffer...')
+        train_logs = []
+        for train_step in range(self.params['num_agent_train_steps_per_iter']):
+
+            # HINT1: use the agent's sample function
+            # HINT2: how much data = self.params['train_batch_size']
+
+            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self.agent.sample(
+                batch_size=self.params['train_batch_size']
+            )
+
+            # HINT: use the agent's train function
+            # HINT: keep the agent's training log for debugging
+            train_log = self.agent.train(
+                observations=ob_batch,
+                actions=ac_batch,
+                rewards_list=re_batch,
+                next_observations=next_ob_batch,
+                terminals=terminal_batch,
+            )
+            train_logs.append(train_log)
         return train_logs
 
     ####################################
@@ -225,3 +321,4 @@ class RL_Trainer(object):
 
             self.logger.flush()
 
+        return logs
