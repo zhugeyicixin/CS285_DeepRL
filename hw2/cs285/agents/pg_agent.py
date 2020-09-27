@@ -125,6 +125,7 @@ class PGAgent(BaseAgent):
     def sample(self, batch_size):
         # TODO: why it is not sample_recent_rollouts?
         return self.replay_buffer.sample_recent_data(batch_size, concat_rew=False)
+        # TODO: how to pad paths? terminals should be used?
         # observations, actions, next_observations, terminals, concatenated_rews, unconcatenated_rews = convert_listofrollouts(
         #     self.replay_buffer.sample_recent_rollouts(
         #         math.ceil(batch_size / self.replay_buffer.ep_len)

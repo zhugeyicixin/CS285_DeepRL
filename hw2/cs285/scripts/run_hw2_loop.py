@@ -2,6 +2,7 @@ import os
 import shlex
 import time
 import argparse
+import time
 
 from cs285.scripts.run_hw2 import PG_Trainer
 
@@ -84,38 +85,42 @@ if __name__ == "__main__":
     all_cmds.append('''
         python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 1000 
         -dsa --exp_name q1_sb_no_rtg_dsa
-        --video_log_freq 5
+        --eval_batch_size 1000
+        --learning_rate 7e-4
+
     ''')
 
     all_cmds.append('''
         python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 1000 
         -rtg -dsa --exp_name q1_sb_rtg_dsa
-        --video_log_freq 5
+        --eval_batch_size 1000
+        --learning_rate 7e-5
     ''')
 
     all_cmds.append('''
         python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 1000 
         -rtg --exp_name q1_sb_rtg_na
-        --video_log_freq 5
+        --eval_batch_size 1000
+        --learning_rate 7e-4
     ''')
 
-    all_cmds.append('''
-        python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000 
-        -dsa --exp_name q1_lb_no_rtg_dsa
-        --video_log_freq 5
-    ''')
-
-    all_cmds.append('''
-        python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000 
-        -rtg -dsa --exp_name q1_lb_rtg_dsa
-        --video_log_freq 5
-    ''')
-
-    all_cmds.append('''
-        python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000 
-        -rtg --exp_name q1_lb_rtg_na
-        --video_log_freq 5
-    ''')
+    # all_cmds.append('''
+    #     python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000
+    #     -dsa --exp_name q1_lb_no_rtg_dsa
+    #     --eval_batch_size 1000
+    # ''')
+    #
+    # all_cmds.append('''
+    #     python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000
+    #     -rtg -dsa --exp_name q1_lb_rtg_dsa
+    #     --eval_batch_size 1000
+    # ''')
+    #
+    # all_cmds.append('''
+    #     python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000
+    #     -rtg --exp_name q1_lb_rtg_na
+    #     --eval_batch_size 1000
+    # ''')
 
 
 
@@ -142,6 +147,12 @@ if __name__ == "__main__":
     #         '''.format(iter_num=iter_num)
     #     )
 
-    for cmd in all_cmds:
+    for i, cmd in enumerate(all_cmds):
+        last_time = time.time()
+
         train_w_parameters(cmd)
 
+        print('---------------------------------------------')
+        print(i, cmd)
+        print('time used:', time.time()-last_time)
+        print()

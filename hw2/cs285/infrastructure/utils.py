@@ -1,6 +1,11 @@
+import math
+
 import numpy as np
 import time
 import copy
+from multiprocessing import Value
+
+from cs285.infrastructure.multi_processing import run_multiprocessing_tasks
 
 ############################################
 ############################################
@@ -91,7 +96,6 @@ def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('
         next_obs.append(ob)
         rewards.append(rew)
 
-        # TODO end the rollout if the rollout ended
         # HINT: rollout can end due to done, or due to max_path_length
          # HINT: this is either 0 or 1
         if (done or steps >= max_path_length):
@@ -105,7 +109,238 @@ def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('
             break
 
     return Path(obs, image_obs, acs, rewards, next_obs, terminals)
-    
+
+def env_step(
+    env,
+    action,
+    rollout_done=False,
+    render=False,
+    render_mode=('rgb_array'),
+):
+    image_ob = None
+    reward = None
+    next_observation = None
+    done = None
+
+    if rollout_done:
+        return image_ob, reward, next_observation, done
+
+    # render image of the simulated env
+    if render:
+        if 'rgb_array' in render_mode:
+            if hasattr(env, 'sim'):
+                image_ob = env.sim.render(camera_name='track', height=500, width=500)[::-1]
+            else:
+                image_ob = env.render(mode=render_mode)
+        if 'human' in render_mode:
+            env.render(mode=render_mode)
+            time.sleep(env.model.opt.timestep)
+
+    # take that action and record results
+    next_observation, reward, done, _ = env.step(action)
+
+    return image_ob, reward, next_observation, done
+
+def env_step_in_one_thread(
+    tasks,
+    render=False,
+    render_mode=('rgb_array'),
+):
+    assert len(tasks) == 1
+    # TODO: env should be shared
+    results = []
+    for t in tasks:
+        results.append((tasks[0]['env'],) + env_step(
+            env=tasks[0]['env'],
+            action=tasks[0]['action'],
+            rollout_done=tasks[0]['rollout_done'],
+            render=render,
+            render_mode=render_mode,
+        ))
+    return results
+
+def sample_trajectories_batch(
+    batch_envs,
+    policy,
+    max_path_length,
+    render=False,
+    render_mode=('rgb_array'),
+):
+    paths = []
+    batch_data = []
+    batch_last_observations = []
+
+    for i, env in enumerate(batch_envs):
+        # init vars
+        batch_data.append({
+            "observations": [],
+            "image_obs": [],
+            "rewards": [],
+            "actions": [],
+            "next_observations": [],
+            "terminals": [],
+        })
+        # initialize env for the beginning of a new rollout
+        # https://gym.openai.com/docs/#environments
+        batch_last_observations.append(env.reset())
+
+    batch_last_observations = np.array(batch_last_observations)
+    rollout_done_indices = set()
+    steps = 0
+
+    while True:
+        steps += 1
+
+        # use the most recent ob to decide what to do
+        # batch_new_actions: (batch_size, action_dim)
+        batch_new_actions = policy.get_action(batch_last_observations)
+
+        for i, env in enumerate(batch_envs):
+
+            ac = batch_new_actions[i]
+            image_ob, rew, ob, done = env_step(
+                env=env,
+                action=ac,
+                rollout_done=(i in rollout_done_indices),
+                render=render,
+                render_mode=render_mode,
+            )
+
+            if rew is None:
+                continue
+
+            # record result of taking that action
+            batch_data[i]['observations'].append(batch_last_observations[i])
+            if image_ob is not None:
+                batch_data[i]['image_obs'].append(image_ob)
+            batch_data[i]['actions'].append(ac)
+            batch_data[i]['next_observations'].append(ob)
+            batch_data[i]['rewards'].append(rew)
+            batch_last_observations[i] = ob
+
+            # HINT: rollout can end due to done, or due to max_path_length
+             # HINT: this is either 0 or 1
+            if (done or steps >= max_path_length):
+                rollout_done = 1
+                rollout_done_indices.add(i)
+            else:
+                rollout_done = 0
+
+            batch_data[i]['terminals'].append(rollout_done)
+
+        if len(rollout_done_indices) >= len(batch_envs):
+            break
+
+    for i, data in enumerate(batch_data):
+        paths.append(Path(
+            obs=data['observations'],
+            image_obs=data['image_obs'],
+            acs=data['actions'],
+            rewards=data['rewards'],
+            next_obs=data['next_observations'],
+            terminals=data['terminals'],
+        ))
+
+    return paths
+
+def sample_trajectories_batch_mp(
+    batch_envs,
+    policy,
+    max_path_length,
+    render=False,
+    render_mode=('rgb_array'),
+):
+    paths = []
+    batch_data = []
+    batch_last_observations = []
+
+    for i, env in enumerate(batch_envs):
+        # init vars
+        batch_data.append({
+            "observations": [],
+            "image_obs": [],
+            "rewards": [],
+            "actions": [],
+            "next_observations": [],
+            "terminals": [],
+        })
+        # initialize env for the beginning of a new rollout
+        # https://gym.openai.com/docs/#environments
+        batch_last_observations.append(env.reset())
+
+    batch_last_observations = np.array(batch_last_observations)
+    rollout_done_indices = set()
+    steps = 0
+
+    while True:
+        steps += 1
+
+        # use the most recent ob to decide what to do
+        # batch_new_actions: (batch_size, action_dim)
+        batch_new_actions = policy.get_action(batch_last_observations)
+        tasks = [{
+            'env': batch_envs[i],
+            'action': batch_new_actions[i],
+            'rollout_done': i in rollout_done_indices
+        } for i in range(len(batch_envs))]
+        results = run_multiprocessing_tasks(
+            tasks=tasks,
+            thread_func=env_step_in_one_thread,
+            func_args=(
+                render,
+                render_mode
+            ),
+            num_cores=len(batch_envs),
+            join_results=False
+        )
+
+        for i in range(len(batch_envs)):
+
+            ac = batch_new_actions[i]
+            assert len(results[i]) == 1
+            (env, image_ob, rew, ob, done) = results[i][0]
+
+            if rew is None:
+                continue
+
+            # record result of taking that action
+            batch_envs[i] = env
+
+            batch_data[i]['observations'].append(batch_last_observations[i])
+            if image_ob is not None:
+                batch_data[i]['image_obs'].append(image_ob)
+            batch_data[i]['actions'].append(ac)
+            batch_data[i]['next_observations'].append(ob)
+            batch_data[i]['rewards'].append(rew)
+
+            batch_last_observations[i] = ob
+
+            # HINT: rollout can end due to done, or due to max_path_length
+             # HINT: this is either 0 or 1
+            if (done or steps >= max_path_length):
+                rollout_done = 1
+                rollout_done_indices.add(i)
+            else:
+                rollout_done = 0
+
+            batch_data[i]['terminals'].append(rollout_done)
+
+        if len(rollout_done_indices) >= len(batch_envs):
+            break
+
+    for i, data in enumerate(batch_data):
+        paths.append(Path(
+            obs=data['observations'],
+            image_obs=data['image_obs'],
+            acs=data['actions'],
+            rewards=data['rewards'],
+            next_obs=data['next_observations'],
+            terminals=data['terminals'],
+        ))
+
+    return paths
+
+
 def sample_trajectories(env, policy, min_timesteps_per_batch, max_path_length, render=False, render_mode=('rgb_array')):
     # TODO: get this from hw1
 
@@ -118,17 +353,56 @@ def sample_trajectories(env, policy, min_timesteps_per_batch, max_path_length, r
     """
     timesteps_this_batch = 0
     paths = []
-    while timesteps_this_batch < min_timesteps_per_batch:
-        paths.append(sample_trajectory(
-            env=env,
-            policy=policy,
-            max_path_length=max_path_length,
-            render=render,
-            render_mode=render_mode,
-        ))
-        timesteps_this_batch += get_pathlength(paths[-1])
+    if isinstance(env, list) or isinstance(env, tuple):
+        while timesteps_this_batch < min_timesteps_per_batch:
+            new_paths = sample_trajectories_batch(
+                batch_envs=env,
+                policy=policy,
+                max_path_length=max_path_length,
+                render=render,
+                render_mode=render_mode,
+            )
+            paths.extend(new_paths)
+            timesteps_this_batch += sum([get_pathlength(p) for p in new_paths])
+    else:
+        while timesteps_this_batch < min_timesteps_per_batch:
+            paths.append(sample_trajectory(
+                env=env,
+                policy=policy,
+                max_path_length=max_path_length,
+                render=render,
+                render_mode=render_mode,
+            ))
+            timesteps_this_batch += get_pathlength(paths[-1])
 
+    return paths, timesteps_this_batch
 
+def sample_trajectories_mp(
+    env,
+    policy,
+    min_timesteps_per_batch,
+    max_path_length,
+    render=False,
+    render_mode=('rgb_array'),
+    num_cores=4
+):
+    min_timesteps_per_thread = math.ceil(min_timesteps_per_batch/num_cores)
+    (paths, timesteps_this_batch) = run_multiprocessing_tasks(
+        tasks=[],
+        thread_func=sample_trajectories,
+        func_args=(
+            env,
+            policy,
+            min_timesteps_per_thread,
+            max_path_length,
+            render,
+            render_mode
+        ),
+        num_cores=num_cores,
+        join_results=True
+    )
+    paths = sum(paths, [])
+    timesteps_this_batch = sum(timesteps_this_batch)
     return paths, timesteps_this_batch
 
 def sample_n_trajectories(env, policy, ntraj, max_path_length, render=False, render_mode=('rgb_array')):

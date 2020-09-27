@@ -50,6 +50,11 @@ class RL_Trainer(object):
         self.env = gym.make(self.params['env_name'])
         self.env.seed(seed)
 
+        self.batch_envs = []
+        for _ in range(16):
+            self.batch_envs.append(gym.make(self.params['env_name']))
+            self.batch_envs[-1].seed(seed)
+
         # import plotting (locally if 'obstacles' env)
         if not(self.params['env_name']=='obstacles-cs285-v0'):
             import matplotlib
@@ -209,13 +214,29 @@ class RL_Trainer(object):
             # HINT1: use sample_trajectories from utils
             # HINT2: you want each of these collected rollouts to be of length self.params['ep_len']
             print("\nCollecting data to be used for training...")
+            # exp_paths, exp_envsteps = utils.sample_trajectories(
+            #     env=self.env,
+            #     policy=collect_policy,
+            #     min_timesteps_per_batch=batch_size-envsteps_this_batch,
+            #     max_path_length=self.params['ep_len'],
+            #     render=False
+            # )
             exp_paths, exp_envsteps = utils.sample_trajectories(
-                env=self.env,
+                env=self.batch_envs,
                 policy=collect_policy,
                 min_timesteps_per_batch=batch_size-envsteps_this_batch,
                 max_path_length=self.params['ep_len'],
                 render=False
             )
+
+            # exp_paths, exp_envsteps = utils.sample_trajectories_mp(
+            #     env=self.env,
+            #     policy=collect_policy,
+            #     min_timesteps_per_batch=batch_size-envsteps_this_batch,
+            #     max_path_length=self.params['ep_len'],
+            #     render=False,
+            #     num_cores=4
+            # )
             paths.extend(exp_paths)
             envsteps_this_batch += exp_envsteps
 
