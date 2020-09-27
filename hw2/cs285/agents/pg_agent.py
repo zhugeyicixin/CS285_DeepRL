@@ -1,9 +1,11 @@
 import numpy as np
+import math
 
 from .base_agent import BaseAgent
 from cs285.policies.MLP_policy import MLPPolicyPG
 from cs285.infrastructure.replay_buffer import ReplayBuffer
 from cs285.infrastructure.utils import normalize
+from cs285.infrastructure.utils import convert_listofrollouts
 
 class PGAgent(BaseAgent):
     def __init__(self, env, agent_params):
@@ -47,7 +49,7 @@ class PGAgent(BaseAgent):
         # TODO: step 3: use all datapoints (s_t, a_t, q_t, adv_t) to update the PG actor/policy
         ## HINT: `train_log` should be returned by your actor update method
         train_log = self.actor.update(
-            observations, actions, advantages
+            observations, actions, advantages, q_values=q_values
         )
 
         return train_log
@@ -123,6 +125,12 @@ class PGAgent(BaseAgent):
     def sample(self, batch_size):
         # TODO: why it is not sample_recent_rollouts?
         return self.replay_buffer.sample_recent_data(batch_size, concat_rew=False)
+        # observations, actions, next_observations, terminals, concatenated_rews, unconcatenated_rews = convert_listofrollouts(
+        #     self.replay_buffer.sample_recent_rollouts(
+        #         math.ceil(batch_size / self.replay_buffer.ep_len)
+        #     )
+        # )
+        # return observations, actions, unconcatenated_rews, next_observations, terminals
 
     #####################################################
     ################## HELPER FUNCTIONS #################

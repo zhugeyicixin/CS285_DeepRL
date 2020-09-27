@@ -13,12 +13,14 @@ class ReplayBuffer(object):
         self.unconcatenated_rews = None
         self.next_obs = None
         self.terminals = None
+        self.ep_len = 0
 
     def add_rollouts(self, paths, noised=False):
 
         # add new rollouts into our list of rollouts
         for path in paths:
             self.paths.append(path)
+            self.ep_len = max(self.ep_len, get_pathlength(path))
 
         # convert new rollouts into their component arrays, and append them onto our arrays
         observations, actions, next_observations, terminals, concatenated_rews, unconcatenated_rews = convert_listofrollouts(paths)

@@ -55,11 +55,6 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
                 self.logits_na.parameters(),
                 self.learning_rate
             )
-            # # for n one-hot output
-            # self.uniform_dist = distributions.Uniform(
-            #     ptu.from_numpy(0.0),
-            #     ptu.from_numpy(1.0)
-            # )
         else:
             self.logits_na = None
             self.mean_net = ptu.build_mlp(
@@ -125,9 +120,6 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             # the out in gym descrete is an index of action
             sampler = distributions.Categorical(logits=acs)
             acs = sampler.sample()
-            # # for n one-hot output
-            # zeta = self.uniform_dist.sample(acs.shape)
-            # acs = (zeta < torch.sigmoid(acs)).to(torch.float32)
         else:
             # sample a N(0, 1) normal distribution
             epsilon = self.normal_dist.sample(acs.shape)
@@ -194,13 +186,6 @@ class MLPPolicyPG(MLPPolicy):
                 dim=-1,
                 index=actions.unsqueeze(dim=-1)
             ).squeeze(dim=-1) - logits.logsumexp(dim=-1, keepdim=False)
-
-            # # for n one-hot output
-            # # neg_log_pi: (batch_size, seq_len, action_dim)
-            # neg_log_pi = F.binary_cross_entropy_with_logits(
-            #     input=logits,
-            #     target=actions,
-            # )
         else:
             acs_mean = self.forward(observations)
             # log_pi: (batch_size, seq_len, action_dim)
@@ -226,6 +211,8 @@ class MLPPolicyPG(MLPPolicy):
             ## TODO: normalize the q_values to have a mean of zero and a standard deviation of one
             ## HINT: there is a `normalize` function in `infrastructure.utils`
             assert q_values is not None
+            q_values = ptu.from_numpy(q_values)
+
             # targets: (batch_size, seq_len)
             targets = normalize(
                 data=q_values,
