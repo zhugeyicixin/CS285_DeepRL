@@ -214,29 +214,15 @@ class RL_Trainer(object):
             # HINT1: use sample_trajectories from utils
             # HINT2: you want each of these collected rollouts to be of length self.params['ep_len']
             print("\nCollecting data to be used for training...")
-            # exp_paths, exp_envsteps = utils.sample_trajectories(
-            #     env=self.env,
-            #     policy=collect_policy,
-            #     min_timesteps_per_batch=batch_size-envsteps_this_batch,
-            #     max_path_length=self.params['ep_len'],
-            #     render=False
-            # )
-            exp_paths, exp_envsteps = utils.sample_trajectories(
-                env=self.batch_envs,
+            exp_paths, exp_envsteps = utils.sample_trajectories_mp(
+                env=self.env,
                 policy=collect_policy,
                 min_timesteps_per_batch=batch_size-envsteps_this_batch,
                 max_path_length=self.params['ep_len'],
-                render=False
+                render=False,
+                num_envs_per_core=self.params['num_envs_per_core'],
+                num_cores=self.params['num_cores'],
             )
-
-            # exp_paths, exp_envsteps = utils.sample_trajectories_mp(
-            #     env=self.env,
-            #     policy=collect_policy,
-            #     min_timesteps_per_batch=batch_size-envsteps_this_batch,
-            #     max_path_length=self.params['ep_len'],
-            #     render=False,
-            #     num_cores=4
-            # )
             paths.extend(exp_paths)
             envsteps_this_batch += exp_envsteps
 
@@ -286,7 +272,12 @@ class RL_Trainer(object):
 
         # collect eval trajectories, for logging
         print("\nCollecting data for eval...")
-        eval_paths, eval_envsteps_this_batch = utils.sample_trajectories(self.env, eval_policy, self.params['eval_batch_size'], self.params['ep_len'])
+        eval_paths, eval_envsteps_this_batch = utils.sample_trajectories(
+            self.env,
+            eval_policy,
+            self.params['eval_batch_size'],
+            self.params['ep_len']
+        )
 
         # save eval rollouts as videos in tensorboard event file
         if self.logvideo and train_video_paths != None:

@@ -8,6 +8,8 @@ import multiprocessing as mp
 import argparse
 import sys
 
+import concurrent.futures
+
 __author__ = 'Tanjin He'
 __maintainer__ = 'Tanjin He'
 __email__ = 'tanjin_he@berkeley.edu'
@@ -19,7 +21,8 @@ def run_multiprocessing_tasks(
     func_args=(),
     num_cores=4,
     verbose=False,
-    join_results=False
+    join_results=False,
+    use_threading=False
 ):
     # execute pipeline in a parallel way
     last_time = time.time()
@@ -35,11 +38,21 @@ def run_multiprocessing_tasks(
     else:
         parallel_arguments = [func_args] * num_cores
 
-    # running using mp
-    p = mp.Pool(processes=num_cores)
-    all_summary = p.starmap(thread_func, parallel_arguments)
-    p.close()
-    p.join()
+    if not use_threading:
+        # running using mp
+        p = mp.Pool(processes=num_cores)
+        all_summary = p.starmap(thread_func, parallel_arguments)
+        p.close()
+        p.join()
+
+    else:
+        # running using threading
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures =[
+                executor.submit(thread_func, *(parallel_arguments[i]))
+                for i in range(num_cores)
+            ]
+            all_summary = [f.result() for f in futures]
 
     # # running using torch.mp
     # processes = []
