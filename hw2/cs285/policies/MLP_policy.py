@@ -124,13 +124,6 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             # sample a N(0, 1) normal distribution
             epsilon = self.normal_dist.sample(acs.shape)
             acs = acs + epsilon * torch.exp(self.logstd)
-
-            # sampler = distributions.MultivariateNormal(
-            #     loc=torch.zeros_like(self.logstd),
-            #     covariance_matrix=torch.diag(torch.exp(2*self.logstd))
-            # )
-            # acs = acs + sampler.sample(acs.shape[:-1])
-
         return acs
 
 
@@ -192,32 +185,16 @@ class MLPPolicyPG(MLPPolicy):
                 dim=-1,
                 index=actions.unsqueeze(dim=-1)
             ).squeeze(dim=-1) - logits.logsumexp(dim=-1, keepdim=False)
-
-            # sampler = distributions.Categorical(logits=logits)
-            # log_pi = sampler.log_prob(actions)
-
         else:
             acs_mean = self.forward(observations)
             # log_pi: (batch_size, seq_len, action_dim)
-
-            # print('actions', actions.shape)
-            # print('acs_mean', acs_mean.shape)
-            # print('logstd', self.logstd.shape)
-
             log_pi = self.normal_dist.log_prob(normalize(
                 data=actions,
                 mean=acs_mean,
                 std=torch.exp(self.logstd)
             ))
-
             # log_pi: (batch_size, seq_len)
             log_pi = torch.sum(log_pi, dim=-1)
-
-            # sampler = distributions.MultivariateNormal(
-            #     loc=torch.zeros_like(self.logstd),
-            #     covariance_matrix=torch.diag(torch.exp(2*self.logstd))
-            # )
-            # log_pi = sampler.log_prob(actions-acs_mean)
 
 
         assert log_pi.shape == advantages.shape

@@ -98,86 +98,75 @@ if __name__ == "__main__":
     #         --learning_rate 7.5e-4
     #         --video_log_freq 5 --num_envs_per_core 1 --num_cores 1
 
-    learning_rate = [2.5e-3, 5e-3, 7.5e-3, 1e-2, 2.5e-2, 5e-2, 7.5e-2, 1e-1]
-    discount = [1.0,  ]
-    n_layers = [2,]
-    size=[64,]
-    steps_per_iter=[1,]
-    # num_agent_train_steps_per_iter
-    for (lr, d, l, s, spi) in itertools.product(learning_rate, discount, n_layers, size, steps_per_iter):
-        # env
-        all_cmds.append('''
-            python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 1000
-            -rtg
-            --exp_name q1_sb_rtg_na_lr{learning_rate}_d{discount}_l{n_layers}_s{size}_spi{steps_per_iter}
-            --eval_batch_size 1000
-            --learning_rate {learning_rate}
-            --discount {discount}
-            --n_layers {n_layers}
-            --size {size}
-            --num_agent_train_steps_per_iter {steps_per_iter}
-            --num_envs_per_core 16 --num_cores 1
-        '''.format(
-            learning_rate=lr,
-            discount=d,
-            n_layers=l,
-            size=s,
-            steps_per_iter=spi
-        ))
+    # learning_rate = [2.5e-3, ]
+    # discount = [1.0,  ]
+    # n_layers = [2,]
+    # size=[64,]
+    # steps_per_iter=[1,]
+    # # num_agent_train_steps_per_iter
+    # for (lr, d, l, s, spi) in itertools.product(learning_rate, discount, n_layers, size, steps_per_iter):
+    #     # env
+    #     all_cmds.append('''
+    #         python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 1000
+    #         -rtg
+    #         --exp_name q1_sb_rtg_na_lr{learning_rate}_d{discount}_l{n_layers}_s{size}_spi{steps_per_iter}
+    #         --eval_batch_size 1000
+    #         --learning_rate {learning_rate}
+    #         --discount {discount}
+    #         --n_layers {n_layers}
+    #         --size {size}
+    #         --num_agent_train_steps_per_iter {steps_per_iter}
+    #         --num_envs_per_core 16 --num_cores 1
+    #     '''.format(
+    #         learning_rate=lr,
+    #         discount=d,
+    #         n_layers=l,
+    #         size=s,
+    #         steps_per_iter=spi
+    #     ))
 
-        # all_cmds.append('''
-        #     python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000
-        #     -rtg --exp_name q1_lb_rtg_na_lr{learning_rate}_d{discount}
-        #     --eval_batch_size 1000
-        #     --learning_rate {learning_rate}
-        #     --discount {discount}
-        # '''.format(
-        #     learning_rate=lr,
-        #     discount=d,
-        # ))
+    # env
+    all_cmds.append('''
+        python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 1000
+        -dsa --exp_name q1_sb_no_rtg_dsa
+        --eval_batch_size 1000
+        --learning_rate 2.5e-3
+    ''')
 
-    # # env
-    # all_cmds.append('''
-    #     python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 1000
-    #     -dsa --exp_name q1_sb_no_rtg_dsa
-    #     --eval_batch_size 1000
-    #     --learning_rate 7.5e-4
-    # ''')
-    #
-    # all_cmds.append('''
-    #     python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 1000
-    #     -rtg -dsa --exp_name q1_sb_rtg_dsa
-    #     --eval_batch_size 1000
-    #     --learning_rate 7.5e-4
-    # ''')
-    #
-    # all_cmds.append('''
-    #     python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 1000
-    #     -rtg --exp_name q1_sb_rtg_na
-    #     --eval_batch_size 1000
-    #     --learning_rate 7.5e-4
-    # ''')
-    #
-    # all_cmds.append('''
-    #     python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000
-    #     -dsa --exp_name q1_lb_no_rtg_dsa
-    #     --eval_batch_size 1000
-    #     --learning_rate 7.5e-4
-    # ''')
-    #
-    # all_cmds.append('''
-    #     python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000
-    #     -rtg -dsa --exp_name q1_lb_rtg_dsa
-    #     --eval_batch_size 1000
-    #     --learning_rate 7.5e-4
-    # ''')
-    #
-    # all_cmds.append('''
-    #     python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000
-    #     -rtg --exp_name q1_lb_rtg_na
-    #     --eval_batch_size 1000
-    #     --learning_rate 7.5e-4
-    # ''')
+    all_cmds.append('''
+        python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 1000
+        -rtg -dsa --exp_name q1_sb_rtg_dsa
+        --eval_batch_size 1000
+        --learning_rate 2.5e-3
+    ''')
+
+    all_cmds.append('''
+        python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 1000
+        -rtg --exp_name q1_sb_rtg_na
+        --eval_batch_size 1000
+        --learning_rate 2.5e-3
+    ''')
+
+    all_cmds.append('''
+        python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000
+        -dsa --exp_name q1_lb_no_rtg_dsa
+        --eval_batch_size 1000
+        --learning_rate 2.5e-3
+    ''')
+
+    all_cmds.append('''
+        python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000
+        -rtg -dsa --exp_name q1_lb_rtg_dsa
+        --eval_batch_size 1000
+        --learning_rate 2.5e-3
+    ''')
+
+    all_cmds.append('''
+        python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000
+        -rtg --exp_name q1_lb_rtg_na
+        --eval_batch_size 1000
+        --learning_rate 2.5e-3
+    ''')
 
     # ###############################################
     # # exp 2
