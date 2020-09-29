@@ -125,54 +125,54 @@ if __name__ == "__main__":
     #         steps_per_iter=spi
     #     ))
 
-    # env
-    all_cmds.append('''
-        python cs285/scripts/run_hw2.py --env_name CartPole-v0
-        -n 100 -b 1000
-        -dsa --exp_name q1_sb_no_rtg_dsa
-        --eval_batch_size 1000
-        --learning_rate 2.5e-3
-    ''')
-
-    all_cmds.append('''
-        python cs285/scripts/run_hw2.py --env_name CartPole-v0
-        -n 100 -b 1000
-        -rtg -dsa --exp_name q1_sb_rtg_dsa
-        --eval_batch_size 1000
-        --learning_rate 2.5e-3
-    ''')
-
-    all_cmds.append('''
-        python cs285/scripts/run_hw2.py --env_name CartPole-v0
-        -n 100 -b 1000
-        -rtg --exp_name q1_sb_rtg_na
-        --eval_batch_size 1000
-        --learning_rate 2.5e-3
-    ''')
-
-    all_cmds.append('''
-        python cs285/scripts/run_hw2.py --env_name CartPole-v0
-        -n 100 -b 5000
-        -dsa --exp_name q1_lb_no_rtg_dsa
-        --eval_batch_size 1000
-        --learning_rate 2.5e-3
-    ''')
-
-    all_cmds.append('''
-        python cs285/scripts/run_hw2.py --env_name CartPole-v0
-        -n 100 -b 5000
-        -rtg -dsa --exp_name q1_lb_rtg_dsa
-        --eval_batch_size 1000
-        --learning_rate 2.5e-3
-    ''')
-
-    all_cmds.append('''
-        python cs285/scripts/run_hw2.py --env_name CartPole-v0
-        -n 100 -b 5000
-        -rtg --exp_name q1_lb_rtg_na
-        --eval_batch_size 1000
-        --learning_rate 2.5e-3
-    ''')
+    # # env
+    # all_cmds.append('''
+    #     python cs285/scripts/run_hw2.py --env_name CartPole-v0
+    #     -n 100 -b 1000
+    #     -dsa --exp_name q1_sb_no_rtg_dsa
+    #     --eval_batch_size 1000
+    #     --learning_rate 2.5e-3
+    # ''')
+    #
+    # all_cmds.append('''
+    #     python cs285/scripts/run_hw2.py --env_name CartPole-v0
+    #     -n 100 -b 1000
+    #     -rtg -dsa --exp_name q1_sb_rtg_dsa
+    #     --eval_batch_size 1000
+    #     --learning_rate 2.5e-3
+    # ''')
+    #
+    # all_cmds.append('''
+    #     python cs285/scripts/run_hw2.py --env_name CartPole-v0
+    #     -n 100 -b 1000
+    #     -rtg --exp_name q1_sb_rtg_na
+    #     --eval_batch_size 1000
+    #     --learning_rate 2.5e-3
+    # ''')
+    #
+    # all_cmds.append('''
+    #     python cs285/scripts/run_hw2.py --env_name CartPole-v0
+    #     -n 100 -b 5000
+    #     -dsa --exp_name q1_lb_no_rtg_dsa
+    #     --eval_batch_size 1000
+    #     --learning_rate 2.5e-3
+    # ''')
+    #
+    # all_cmds.append('''
+    #     python cs285/scripts/run_hw2.py --env_name CartPole-v0
+    #     -n 100 -b 5000
+    #     -rtg -dsa --exp_name q1_lb_rtg_dsa
+    #     --eval_batch_size 1000
+    #     --learning_rate 2.5e-3
+    # ''')
+    #
+    # all_cmds.append('''
+    #     python cs285/scripts/run_hw2.py --env_name CartPole-v0
+    #     -n 100 -b 5000
+    #     -rtg --exp_name q1_lb_rtg_na
+    #     --eval_batch_size 1000
+    #     --learning_rate 2.5e-3
+    # ''')
 
     # ###############################################
     # # exp 2
@@ -228,44 +228,44 @@ if __name__ == "__main__":
     #         learning_rate=lr
     #     ))
 
-    # batch_size = [ 50000 ]
-    # learning_rate = [ 0.02]
-    # for (b, lr) in itertools.product(batch_size, learning_rate):
-    #     all_cmds.append('''
-    #         python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
-    #         --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate}
-    #         --exp_name q4_b{batch_size}_r{learning_rate}
-    #     '''.format(
-    #         batch_size=b,
-    #         learning_rate=lr
-    #     ))
-    #
-    #     all_cmds.append('''
-    #         python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
-    #         --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate} -rtg
-    #         --exp_name q4_b{batch_size}_r{learning_rate}_rtg
-    #     '''.format(
-    #         batch_size=b,
-    #         learning_rate=lr
-    #     ))
-    #
-    #     all_cmds.append('''
-    #         python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
-    #         --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate} --nn_baseline
-    #         --exp_name q4_b{batch_size}_r{learning_rate}_nnbaseline
-    #     '''.format(
-    #         batch_size=b,
-    #         learning_rate=lr
-    #     ))
-    #
-    #     all_cmds.append('''
-    #         python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
-    #         --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate} -rtg --nn_baseline
-    #         --exp_name q4_b{batch_size}_r{learning_rate}_rtg_nnbaseline
-    #     '''.format(
-    #         batch_size=b,
-    #         learning_rate=lr
-    #     ))
+    batch_size = [ 50000 ]
+    learning_rate = [ 0.02]
+    for (b, lr) in itertools.product(batch_size, learning_rate):
+        # all_cmds.append('''
+        #     python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
+        #     --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate}
+        #     --exp_name q4_b{batch_size}_r{learning_rate}
+        # '''.format(
+        #     batch_size=b,
+        #     learning_rate=lr
+        # ))
+        #
+        # all_cmds.append('''
+        #     python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
+        #     --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate} -rtg
+        #     --exp_name q4_b{batch_size}_r{learning_rate}_rtg
+        # '''.format(
+        #     batch_size=b,
+        #     learning_rate=lr
+        # ))
+        #
+        # all_cmds.append('''
+        #     python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
+        #     --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate} --nn_baseline
+        #     --exp_name q4_b{batch_size}_r{learning_rate}_nnbaseline
+        # '''.format(
+        #     batch_size=b,
+        #     learning_rate=lr
+        # ))
+
+        all_cmds.append('''
+            python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
+            --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate} -rtg --nn_baseline
+            --exp_name q4_b{batch_size}_r{learning_rate}_rtg_nnbaseline
+        '''.format(
+            batch_size=b,
+            learning_rate=lr
+        ))
 
 
     # ###############################################
