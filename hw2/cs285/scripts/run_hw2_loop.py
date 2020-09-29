@@ -127,42 +127,48 @@ if __name__ == "__main__":
 
     # env
     all_cmds.append('''
-        python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 1000
+        python cs285/scripts/run_hw2.py --env_name CartPole-v0
+        -n 100 -b 1000
         -dsa --exp_name q1_sb_no_rtg_dsa
         --eval_batch_size 1000
         --learning_rate 2.5e-3
     ''')
 
     all_cmds.append('''
-        python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 1000
+        python cs285/scripts/run_hw2.py --env_name CartPole-v0
+        -n 100 -b 1000
         -rtg -dsa --exp_name q1_sb_rtg_dsa
         --eval_batch_size 1000
         --learning_rate 2.5e-3
     ''')
 
     all_cmds.append('''
-        python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 1000
+        python cs285/scripts/run_hw2.py --env_name CartPole-v0
+        -n 100 -b 1000
         -rtg --exp_name q1_sb_rtg_na
         --eval_batch_size 1000
         --learning_rate 2.5e-3
     ''')
 
     all_cmds.append('''
-        python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000
+        python cs285/scripts/run_hw2.py --env_name CartPole-v0
+        -n 100 -b 5000
         -dsa --exp_name q1_lb_no_rtg_dsa
         --eval_batch_size 1000
         --learning_rate 2.5e-3
     ''')
 
     all_cmds.append('''
-        python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000
+        python cs285/scripts/run_hw2.py --env_name CartPole-v0
+        -n 100 -b 5000
         -rtg -dsa --exp_name q1_lb_rtg_dsa
         --eval_batch_size 1000
         --learning_rate 2.5e-3
     ''')
 
     all_cmds.append('''
-        python cs285/scripts/run_hw2.py --env_name CartPole-v0 -n 100 -b 5000
+        python cs285/scripts/run_hw2.py --env_name CartPole-v0
+        -n 100 -b 5000
         -rtg --exp_name q1_lb_rtg_na
         --eval_batch_size 1000
         --learning_rate 2.5e-3
@@ -171,20 +177,27 @@ if __name__ == "__main__":
     # ###############################################
     # # exp 2
     # ###############################################
-    # batch_size = [5000,]
-    # # learning_rate = [ 5e-1, 5e-2,  5e-3,  5e-4,  5e-5]
-    # learning_rate = [  5e-3,  ]
+    # batch_size = [ 500, 1000, ]
+    # learning_rate = [ 1e-2, 2.5e-2, 5e-2,  ]
     # discount = [0.9, ]
     # for (b, lr, d) in itertools.product(batch_size, learning_rate, discount):
     #     all_cmds.append('''
     #         python cs285/scripts/run_hw2.py --env_name InvertedPendulum-v2
     #         --ep_len 1000 --discount {discount} -n 100 -l 2 -s 64 -b {batch_size} -lr {learning_rate} -rtg
-    #         --exp_name q2_b{batch_size}_r{learning_rate}_d{discount}
+    #         --exp_name q2_b{batch_size}_r{learning_rate}
+    #         --eval_batch_size 5000
     #     '''.format(
     #         batch_size=b,
     #         learning_rate=lr,
     #         discount=d,
     #     ))
+
+    # all_cmds.append('''
+    #     python cs285/scripts/run_hw2.py --env_name InvertedPendulum-v2
+    #     --ep_len 1000 --discount 0.9 -n 100 -l 2 -s 64 -b 1000 -lr 0.05 -rtg
+    #     --exp_name q2_b1000_r0.05
+    #     --eval_batch_size 5000
+    # ''')
 
 
     # ###############################################
@@ -194,41 +207,86 @@ if __name__ == "__main__":
     #     python cs285/scripts/run_hw2.py
     #     --env_name LunarLanderContinuous-v2 --ep_len 1000
     #     --discount 0.99 -n 100 -l 2 -s 64 -b 40000 -lr 0.005
-    #     --reward_to_go --nn_baseline --exp_name q3_b40000_r0.0
-    #     --video_log_freq 5 --num_envs_per_core 1 --num_cores 1
+    #     --reward_to_go --nn_baseline --exp_name q3_b40000_r0.005
+    #     --eval_batch_size 5000
     # ''')
 
 
-    # ###############################################
-    # # exp 4
-    # ###############################################
-    # batch_size = 1000
-    # learning_rate = 7.5e-4
-    # all_cmds.append('''
-    #     python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
-    #     --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate} -rtg --nn_baseline
-    #     --exp_name q4_search_b{batch_size}_lr{learning_rate}_rtg_nnbaseline
-    #     --video_log_freq 5 --num_envs_per_core 1 --num_cores 1
-    # '''.format(
-    #     batch_size=batch_size,
-    #     learning_rate=learning_rate
-    # ))
+    ###############################################
+    # exp 4
+    ###############################################
+    # batch_size = [10000, 30000, 50000 ]
+    # learning_rate = [5e-3, 0.01, 0.02]
+    # for (b, lr) in itertools.product(batch_size, learning_rate):
+    #     all_cmds.append('''
+    #         python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
+    #         --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate} -rtg --nn_baseline
+    #         --exp_name q4_search_b{batch_size}_lr{learning_rate}_rtg_nnbaseline
+    #         --video_log_freq 5 --num_envs_per_core 1 --num_cores 1
+    #     '''.format(
+    #         batch_size=b,
+    #         learning_rate=lr
+    #     ))
 
-    # python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
-    # --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate}
-    # --exp_name q4_b{batch_size}_r{learning_rate}
+    # batch_size = [ 50000 ]
+    # learning_rate = [ 0.02]
+    # for (b, lr) in itertools.product(batch_size, learning_rate):
+    #     all_cmds.append('''
+    #         python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
+    #         --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate}
+    #         --exp_name q4_b{batch_size}_r{learning_rate}
+    #     '''.format(
+    #         batch_size=b,
+    #         learning_rate=lr
+    #     ))
     #
-    # python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
-    # --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate} -rtg
-    # --exp_name q4_b{batch_size}_r{learning_rate}_rtg
+    #     all_cmds.append('''
+    #         python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
+    #         --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate} -rtg
+    #         --exp_name q4_b{batch_size}_r{learning_rate}_rtg
+    #     '''.format(
+    #         batch_size=b,
+    #         learning_rate=lr
+    #     ))
     #
-    # python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
-    # --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate} --nn_baseline
-    # --exp_name q4_b{batch_size}_r{learning_rate}_nnbaseline
+    #     all_cmds.append('''
+    #         python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
+    #         --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate} --nn_baseline
+    #         --exp_name q4_b{batch_size}_r{learning_rate}_nnbaseline
+    #     '''.format(
+    #         batch_size=b,
+    #         learning_rate=lr
+    #     ))
     #
-    # python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
-    # --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate} -rtg --nn_baseline
-    # --exp_name q4_b{batch_size}_r{learning_rate}_rtg_nnbaseline
+    #     all_cmds.append('''
+    #         python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
+    #         --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate} -rtg --nn_baseline
+    #         --exp_name q4_b{batch_size}_r{learning_rate}_rtg_nnbaseline
+    #     '''.format(
+    #         batch_size=b,
+    #         learning_rate=lr
+    #     ))
+
+
+    # ###############################################
+    # # paralellization
+    # ###############################################
+    # batch_size = [10000, ]
+    # learning_rate = [0.02,]
+    # num_cores = [ 1, ]
+    # num_envs_per_core = [16, ]
+    # for (b, lr, nc, ne) in itertools.product(batch_size, learning_rate, num_cores, num_envs_per_core):
+    #     all_cmds.append('''
+    #         python cs285/scripts/run_hw2.py --env_name HalfCheetah-v2 --ep_len 150
+    #         --discount 0.95 -n 100 -l 2 -s 32 -b {batch_size} -lr {learning_rate} -rtg --nn_baseline
+    #         --exp_name q4_search_b{batch_size}_lr{learning_rate}_rtg_nnbaseline_nc{num_cores}_ne{num_envs_per_core}
+    #         --num_envs_per_core {num_envs_per_core} --num_cores {num_cores}
+    #     '''.format(
+    #         batch_size=b,
+    #         learning_rate=lr,
+    #         num_cores=nc,
+    #         num_envs_per_core=ne,
+    #     ))
 
     for i, cmd in enumerate(all_cmds):
         last_time = time.time()
