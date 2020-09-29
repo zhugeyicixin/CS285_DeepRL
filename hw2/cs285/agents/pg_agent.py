@@ -41,6 +41,9 @@ class PGAgent(BaseAgent):
         """
 
         # step 1: calculate q values of each (s_t, a_t) point, using rewards (r_0, ..., r_t, ..., r_T)
+
+        n_rollouts = len(rewards_list)
+
         q_values = self.calculate_q_vals(rewards_list)
 
         # step 2: calculate advantages that correspond to each (s_t, a_t) point
@@ -49,7 +52,7 @@ class PGAgent(BaseAgent):
         # TODO: step 3: use all datapoints (s_t, a_t, q_t, adv_t) to update the PG actor/policy
         ## HINT: `train_log` should be returned by your actor update method
         train_log = self.actor.update(
-            observations, actions, advantages, q_values=q_values
+            observations, actions, advantages, q_values=q_values, n_rollouts=n_rollouts
         )
 
         return train_log
@@ -174,7 +177,10 @@ class PGAgent(BaseAgent):
         # valid for both 1D and 2D input
         coeff = np.power(self.gamma, np.arange(len(rewards)))
         weighted_rewards = (rewards.T * coeff).T
-        list_of_discounted_cumsums = np.cumsum(weighted_rewards, axis=0)
+        list_of_discounted_cumsums = np.flip(np.cumsum(
+            np.flip(weighted_rewards, axis=0),
+            axis=0
+        ), axis=0)
         list_of_discounted_cumsums = (list_of_discounted_cumsums.T / coeff).T
 
         return list_of_discounted_cumsums

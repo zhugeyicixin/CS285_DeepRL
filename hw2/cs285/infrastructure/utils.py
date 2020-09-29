@@ -1,9 +1,7 @@
 import math
-
 import numpy as np
 import time
-from copy import copy, deepcopy
-from multiprocessing import Value
+import copy
 
 from cs285.infrastructure.multi_processing import run_multiprocessing_tasks
 
@@ -166,7 +164,6 @@ def sample_trajectories_batch(
         # https://gym.openai.com/docs/#environments
         batch_last_observations.append(env.reset())
 
-    batch_last_observations = np.array(batch_last_observations)
     rollout_done_indices = set()
     steps = 0
 
@@ -175,7 +172,11 @@ def sample_trajectories_batch(
 
         # use the most recent ob to decide what to do
         # batch_new_actions: (batch_size, action_dim)
-        batch_new_actions = policy.get_action(batch_last_observations)
+        # attention: we use batch_last_observations as a list rather than np.ndarray
+        # because the reference in np.ndarry batch_last_observations[i] is fixed
+        # if batch_last_observations is np.ndarray , we should use copy to record the value later
+        # batch_data[i]['observations'].append(copy.deepcopy(batch_last_observations[i]))
+        batch_new_actions = policy.get_action(np.array(batch_last_observations))
 
         for i, env in enumerate(batch_envs):
 
@@ -240,13 +241,12 @@ def sample_trajectories(
     """
         Collect rollouts until we have collected min_timesteps_per_batch steps.
 
-        TODO implement this function
         Hint1: use sample_trajectory to get each path (i.e. rollout) that goes into paths
         Hint2: use get_pathlength to count the timesteps collected in each path
     """
     timesteps_this_batch = 0
     paths = []
-    batch_envs = [deepcopy(env) for _ in range(num_envs_per_core)]
+    batch_envs = [copy.deepcopy(env) for _ in range(num_envs_per_core)]
     while timesteps_this_batch < min_timesteps_per_batch:
         new_paths = sample_trajectories_batch(
             batch_envs=batch_envs,

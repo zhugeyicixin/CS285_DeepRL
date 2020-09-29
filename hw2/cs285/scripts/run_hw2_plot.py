@@ -167,7 +167,142 @@ def plot_num_iterations():
     )
     plt.show()
 
+def plot_lr_q1_lb():
+    with open('../../data/good/q1_lb_no_rtg_dsa.json', 'r') as fr:
+        data_1 = json.load(fr)
+    data_1 = pd.DataFrame(data_1)
+
+    with open('../../data/good/q1_lb_rtg_dsa.json', 'r') as fr:
+        data_2 = json.load(fr)
+    data_2 = pd.DataFrame(data_2)
+
+    with open('../../data/good/q1_lb_rtg_na.json', 'r') as fr:
+        data_3 = json.load(fr)
+    data_3 = pd.DataFrame(data_3)
+
+    fig = plt.figure(figsize=(12, 8))
+    ax = fig.add_subplot(111)
+
+    sns.set(style="white", palette="muted", color_codes=True)
+    paper_rc = {'lines.linewidth': 5}
+    sns.set_context("paper", rc=paper_rc)
+
+
+    all_data = [data_1, data_2, data_3]
+    all_colors = ['r', 'b', 'g']
+    all_labels = ['lb_no_rtg_dsa', 'lb_rtg_dsa', 'lb_rtg_na']
+
+    for i in range(len(all_data)):
+        data = all_data[i]
+        color = all_colors[i]
+        label = all_labels[i]
+        num_to_use = len(data['itr'])
+        p1_1 = plt.plot(
+            data['itr'][:num_to_use],
+            data['Eval_AverageReturn'][:num_to_use],
+            label=label,
+            color=color,
+            linewidth=5,
+        )
+
+        p1_2 = plt.fill_between(
+            data['itr'][:num_to_use],
+            data['Eval_AverageReturn'][:num_to_use]-data['Eval_StdReturn'],
+            data['Eval_AverageReturn'][:num_to_use]+data['Eval_StdReturn'],
+            color=color,
+            alpha=0.2
+        )
+
+
+    plt.xlabel('Number of iterations', size=36)
+    plt.ylabel('Eval Return', size=36)
+    ax.tick_params(axis='x', which='major', labelsize=32)
+    ax.tick_params(axis='y', which='major', labelsize=32)
+    # plt.xlim(-1, 21)
+    # plt.xticks(range(21), range(1,22) )
+    # plt.ylim(-500, 5500)
+
+    # bbox_to_anchor (x, y, width, height)
+    plt.legend(
+        frameon=False,
+        fontsize=32,
+        loc='best',
+        bbox_to_anchor=(0.5, 0.2, 0.5, 0.3)
+    )
+    plt.tight_layout()
+    plt.savefig('../../data/plots/lr_q1_lb.png', dpi=300)
+    plt.show()
+
+def plot_lr_q1_sb():
+    with open('../../data/good/q1_sb_no_rtg_dsa.json', 'r') as fr:
+        data_1 = json.load(fr)
+    data_1 = pd.DataFrame(data_1)
+
+    with open('../../data/good/q1_sb_rtg_dsa.json', 'r') as fr:
+        data_2 = json.load(fr)
+    data_2 = pd.DataFrame(data_2)
+
+    with open('../../data/good/q1_sb_rtg_na.json', 'r') as fr:
+        data_3 = json.load(fr)
+    data_3 = pd.DataFrame(data_3)
+
+    fig = plt.figure(figsize=(12, 8))
+    ax = fig.add_subplot(111)
+
+    sns.set(style="white", palette="muted", color_codes=True)
+    # paper_rc = {'lines.linewidth': 5}
+    # sns.set_context("paper", rc=paper_rc)
+
+
+    all_data = [data_1, data_2, data_3]
+    all_colors = ['r', 'b', 'g']
+    all_labels = ['sb_no_rtg_dsa', 'sb_rtg_dsa', 'sb_rtg_na']
+
+    for i in range(len(all_data)):
+        data = all_data[i]
+        color = all_colors[i]
+        label = all_labels[i]
+        num_to_use = len(data['itr'])
+        p1_1 = plt.plot(
+            data['itr'][:num_to_use],
+            data['Eval_AverageReturn'][:num_to_use],
+            label=label,
+            color=color,
+            linewidth=5,
+        )
+
+        p1_2 = plt.fill_between(
+            data['itr'][:num_to_use],
+            data['Eval_AverageReturn'][:num_to_use]-data['Eval_StdReturn'],
+            data['Eval_AverageReturn'][:num_to_use]+data['Eval_StdReturn'],
+            color=color,
+            alpha=0.2
+        )
+
+
+    plt.xlabel('Number of iterations', size=36)
+    plt.ylabel('Eval Return', size=36)
+    ax.tick_params(axis='x', which='major', labelsize=32)
+    ax.tick_params(axis='y', which='major', labelsize=32)
+    # plt.xlim(-1, 21)
+    # plt.xticks(range(21), range(1,22) )
+    # plt.ylim(-500, 5500)
+
+    # bbox_to_anchor (x, y, width, height)
+    plt.legend(
+        frameon=False,
+        fontsize=32,
+        loc='best',
+        bbox_to_anchor=(0.5, 0.2, 0.5, 0.3)
+    )
+    plt.tight_layout()
+    plt.savefig('../../data/plots/lr_q1_sb.png', dpi=300)
+    plt.show()
+
 
 if __name__ == '__main__':
     # plot_training_step_per_iter()
-    plot_num_iterations()
+    # plot_num_iterations()
+
+    plot_lr_q1_lb()
+    plot_lr_q1_sb()
