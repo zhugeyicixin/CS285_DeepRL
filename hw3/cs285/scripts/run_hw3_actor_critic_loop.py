@@ -77,7 +77,7 @@ def train_w_parameters(cmd):
     if not (os.path.exists(data_path)):
         os.makedirs(data_path)
 
-    logdir = 'hw3_ ' + args.exp_name + '_' + args.env_name + '_' + time.strftime("%d-%m-%Y_%H-%M-%S")
+    logdir = 'hw3_' + args.exp_name + '_' + args.env_name + '_' + time.strftime("%d-%m-%Y_%H-%M-%S")
     logdir = os.path.join(data_path, logdir)
     params['logdir'] = logdir
     if not(os.path.exists(logdir)):
@@ -133,15 +133,6 @@ if __name__ == "__main__":
     #     -ntu 10 -ngsptu 10
     # ''')
 
-    all_cmds.append('''
-        python run_hw3_actor_critic.py
-        --env_name CartPole-v0
-        -n 100 -b 1000
-        --exp_name q4_ac_10_10
-        -ntu 10 -ngsptu 10
-        --video_log_freq 5 --num_envs_per_core 1 --num_cores 1
-    ''')
-
     # # #############################################
     # # exp 5
     # # #############################################
@@ -175,6 +166,35 @@ if __name__ == "__main__":
     #     ngsptu=ngsptu
     # ))
 
+    # # #############################################
+    # # video
+    # # #############################################
+    ntu = 10
+    ngsptu = 10
+
+    # all_cmds.append('''
+    #     python run_hw3_actor_critic.py
+    #     --env_name CartPole-v0
+    #     -n 100 -b 1000
+    #     --exp_name q4_ac_10_10
+    #     -ntu 10 -ngsptu 10
+    #     --video_log_freq 5 --num_envs_per_core 1 --num_cores 1
+    # ''')
+
+    all_cmds.append('''
+        python run_hw3_actor_critic.py
+        --env_name HalfCheetah-v2
+        --ep_len 150 --discount 0.90
+        --scalar_log_freq 1
+        -n 150 -l 2 -s 32
+        -b 30000 -eb 1500 -lr 0.02
+        --exp_name q5_HC_{ntu}_{ngsptu}
+        -ntu {ntu} -ngsptu {ngsptu}
+        --video_log_freq 5 --num_envs_per_core 1 --num_cores 1
+    '''.format(
+        ntu=ntu,
+        ngsptu=ngsptu
+    ))
 
     for i, cmd in enumerate(all_cmds):
         last_time = time.time()
