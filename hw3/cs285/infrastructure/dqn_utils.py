@@ -36,7 +36,7 @@ def register_custom_envs():
         )
 
 
-def get_env_kwargs(env_name):
+def get_env_kwargs(env_name, **params):
     if env_name in ['MsPacman-v0', 'PongNoFrameskip-v4']:
         kwargs = {
             'learning_starts': 50000,
@@ -52,7 +52,9 @@ def get_env_kwargs(env_name):
             'gamma': 0.99,
         }
         kwargs['optimizer_spec'] = atari_optimizer(kwargs['num_timesteps'])
-        kwargs['exploration_schedule'] = atari_exploration_schedule(kwargs['num_timesteps'])
+        kwargs['exploration_schedule'] = atari_exploration_schedule(
+            kwargs['num_timesteps']
+        )
 
     elif env_name == 'LunarLander-v3':
         def lunar_empty_wrapper(env):
@@ -72,7 +74,10 @@ def get_env_kwargs(env_name):
             'num_timesteps': 500000,
             'env_wrappers': lunar_empty_wrapper
         }
-        kwargs['exploration_schedule'] = lander_exploration_schedule(kwargs['num_timesteps'])
+        kwargs['exploration_schedule'] = lander_exploration_schedule(
+            kwargs['num_timesteps'],
+            epsilon=params.get('lander_epsilon', 0.02)
+        )
 
     else:
         raise NotImplementedError
@@ -118,13 +123,13 @@ def create_atari_q_network(ob_dim, num_actions):
         nn.Linear(512, num_actions),
     )
 
-def atari_exploration_schedule(num_timesteps):
+def atari_exploration_schedule(num_timesteps, epsilon_1=0.1, epsilon_2=0.01):
     return PiecewiseSchedule(
         [
             (0, 1.0),
-            (1e6, 0.1),
-            (num_timesteps / 8, 0.01),
-        ], outside_value=0.01
+            (1e6, epsilon_1),
+            (num_timesteps / 8, epsilon_2),
+        ], outside_value=epsilon_2
     )
 
 
@@ -168,12 +173,12 @@ def lander_optimizer():
     )
 
 
-def lander_exploration_schedule(num_timesteps):
+def lander_exploration_schedule(num_timesteps, epsilon=0.02):
     return PiecewiseSchedule(
         [
             (0, 1),
-            (num_timesteps * 0.1, 0.02),
-        ], outside_value=0.02
+            (num_timesteps * 0.1, epsilon),
+        ], outside_value=epsilon
     )
 
 

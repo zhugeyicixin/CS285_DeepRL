@@ -50,11 +50,6 @@ class RL_Trainer(object):
         self.env = gym.make(self.params['env_name'])
         self.env.seed(seed)
 
-        self.batch_envs = []
-        for _ in range(16):
-            self.batch_envs.append(gym.make(self.params['env_name']))
-            self.batch_envs[-1].seed(seed)
-
         # import plotting (locally if 'obstacles' env)
         if not(self.params['env_name']=='obstacles-cs285-v0'):
             import matplotlib
@@ -175,9 +170,10 @@ class RL_Trainer(object):
     def collect_training_trajectories(
         self,
         itr,
-        load_initial_expertdata,
+        initial_expertdata,
         collect_policy,
-        batch_size
+        num_transitions_to_sample,
+        save_expert_data_to_disk=False
     ):
         """
         :param itr:
@@ -195,29 +191,30 @@ class RL_Trainer(object):
         paths = []
         envsteps_this_batch = 0
 
-        if (load_initial_expertdata is not None and itr == 0):
-            if os.path.exists(load_initial_expertdata):
-                expert_paths = pickle.load(open(load_initial_expertdata, 'rb'))
+        if (itr == 0 and initial_expertdata is not None):
+            if os.path.exists(initial_expertdata):
+                expert_paths = pickle.load(open(initial_expertdata, 'rb'))
                 paths.extend(expert_paths)
                 envsteps_this_batch += sum([utils.get_pathlength(p) for p in expert_paths])
             else:
                 warnings.warn(
                     "load_initial_expertdata file {} not found!".format(
-                        load_initial_expertdata
+                        initial_expertdata
                     )
                 )
+            return paths, envsteps_this_batch, None
 
-        if (
-            envsteps_this_batch < batch_size
-            and (load_initial_expertdata is None or itr > 0)
-        ):
+        if (iter == 0 and save_expert_data_to_disk):
+            num_transitions_to_sample = self.params['batch_size_initial']
+
+        if envsteps_this_batch < num_transitions_to_sample:
             # HINT1: use sample_trajectories from utils
             # HINT2: you want each of these collected rollouts to be of length self.params['ep_len']
             print("\nCollecting data to be used for training...")
             exp_paths, exp_envsteps = utils.sample_trajectories_mp(
                 env=self.env,
                 policy=collect_policy,
-                min_timesteps_per_batch=batch_size-envsteps_this_batch,
+                min_timesteps_per_batch=num_transitions_to_sample-envsteps_this_batch,
                 max_path_length=self.params['ep_len'],
                 render=False,
                 num_envs_per_core=self.params['num_envs_per_core'],
@@ -229,9 +226,13 @@ class RL_Trainer(object):
         # collect more rollouts with the same policy, to be saved as videos in tensorboard
         # note: here, we collect MAX_NVIDEO rollouts, each of length MAX_VIDEO_LEN
         train_video_paths = None
-        if self.log_video:
+        if self.logvideo:
             print('\nCollecting train rollouts to be used for saving videos...')
             train_video_paths = utils.sample_n_trajectories(self.env, collect_policy, MAX_NVIDEO, MAX_VIDEO_LEN, True)
+
+        if save_expert_data_to_disk and itr == 0:
+            with open('expert_data_{}.pkl'.format(self.params['env_name']), 'wb') as file:
+                pickle.dump(paths, file)
 
         return paths, envsteps_this_batch, train_video_paths
 

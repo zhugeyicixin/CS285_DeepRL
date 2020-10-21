@@ -1,62 +1,14 @@
 import os
+import shlex
 import time
+import argparse
+import time
+import itertools
 
-from cs285.agents.ac_agent import ACAgent
-from cs285.infrastructure.rl_trainer import RL_Trainer
-
-
-class AC_Trainer(object):
-
-    def __init__(self, params):
-
-        #####################
-        ## SET AGENT PARAMS
-        #####################
-
-        computation_graph_args = {
-            'n_layers': params['n_layers'],
-            'size': params['size'],
-            'learning_rate': params['learning_rate'],
-            'num_target_updates': params['num_target_updates'],
-            'num_grad_steps_per_target_update': params['num_grad_steps_per_target_update'],
-            }
-
-        estimate_advantage_args = {
-            'gamma': params['discount'],
-            'standardize_advantages': not(params['dont_standardize_advantages']),
-        }
-
-        train_args = {
-            'num_agent_train_steps_per_iter': params['num_agent_train_steps_per_iter'],
-            'num_critic_updates_per_agent_update': params['num_critic_updates_per_agent_update'],
-            'num_actor_updates_per_agent_update': params['num_actor_updates_per_agent_update'],
-        }
-
-        agent_params = {**computation_graph_args, **estimate_advantage_args, **train_args}
-
-        self.params = params
-        self.params['agent_class'] = ACAgent
-        self.params['agent_params'] = agent_params
-        self.params['batch_size_initial'] = self.params['batch_size']
-
-        ################
-        ## RL TRAINER
-        ################
-
-        self.rl_trainer = RL_Trainer(self.params)
-
-    def run_training_loop(self):
-
-        self.rl_trainer.run_training_loop(
-            self.params['n_iter'],
-            collect_policy = self.rl_trainer.agent.actor,
-            eval_policy = self.rl_trainer.agent.actor,
-            )
+from cs285.scripts.run_hw3_actor_critic import AC_Trainer
 
 
-def main():
-
-    import argparse
+def get_argument_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--env_name', type=str, default='CartPole-v0')
     parser.add_argument('--ep_len', type=int, default=200)
@@ -92,8 +44,21 @@ def main():
     parser.add_argument('--scalar_log_freq', type=int, default=10)
 
     parser.add_argument('--save_params', action='store_true')
+    return parser
 
-    args = parser.parse_args()
+def parse_command(cmd):
+    cmd_parser = get_argument_parser()
+    argument_list = shlex.split(cmd)
+    argument_list = argument_list[2:]
+    try:
+        args = cmd_parser.parse_args(argument_list)
+    except:
+        raise AttributeError('Command parse error: \n{}\n'.format(cmd))
+        # print(tmp_result['command'])
+    return args
+
+def train_w_parameters(cmd):
+    args = parse_command(cmd)
 
     # convert to dictionary
     params = vars(args)
@@ -129,4 +94,95 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    all_cmds = []
+    os.chdir('../../')
+
+    # #############################################
+    # exp 4
+    # #############################################
+    # # env
+    # all_cmds.append('''
+    #     python run_hw3_actor_critic.py
+    #     --env_name CartPole-v0
+    #     -n 100 -b 1000
+    #     --exp_name q4_ac_1_1
+    #     -ntu 1 -ngsptu 1
+    # ''')
+    #
+    # all_cmds.append('''
+    #     python run_hw3_actor_critic.py
+    #     --env_name CartPole-v0
+    #     -n 100 -b 1000
+    #     --exp_name q4_100_1
+    #     -ntu 100 -ngsptu 1
+    # ''')
+    #
+    # all_cmds.append('''
+    #     python run_hw3_actor_critic.py
+    #     --env_name CartPole-v0
+    #     -n 100 -b 1000
+    #     --exp_name q4_1_100
+    #     -ntu 1 -ngsptu 100
+    # ''')
+    #
+    # all_cmds.append('''
+    #     python run_hw3_actor_critic.py
+    #     --env_name CartPole-v0
+    #     -n 100 -b 1000
+    #     --exp_name q4_ac_10_10
+    #     -ntu 10 -ngsptu 10
+    # ''')
+
+    all_cmds.append('''
+        python run_hw3_actor_critic.py
+        --env_name CartPole-v0
+        -n 100 -b 1000
+        --exp_name q4_ac_10_10
+        -ntu 10 -ngsptu 10
+        --video_log_freq 5 --num_envs_per_core 1 --num_cores 1
+    ''')
+
+    # # #############################################
+    # # exp 5
+    # # #############################################
+    # # env
+    # ntu = 10
+    # ngsptu = 10
+    # all_cmds.append('''
+    #     python run_hw3_actor_critic.py
+    #     --env_name InvertedPendulum-v2
+    #     --ep_len 1000 --discount 0.95
+    #     -n 100 -l 2 -s 64
+    #     -b 5000 -lr 0.01
+    #     --exp_name q5_IP_{ntu}_{ngsptu}
+    #     -ntu {ntu} -ngsptu {ngsptu}
+    # '''.format(
+    #     ntu=ntu,
+    #     ngsptu=ngsptu
+    # ))
+    #
+    # all_cmds.append('''
+    #     python run_hw3_actor_critic.py
+    #     --env_name HalfCheetah-v2
+    #     --ep_len 150 --discount 0.90
+    #     --scalar_log_freq 1
+    #     -n 150 -l 2 -s 32
+    #     -b 30000 -eb 1500 -lr 0.02
+    #     --exp_name q5_HC_{ntu}_{ngsptu}
+    #     -ntu {ntu} -ngsptu {ngsptu}
+    # '''.format(
+    #     ntu=ntu,
+    #     ngsptu=ngsptu
+    # ))
+
+
+    for i, cmd in enumerate(all_cmds):
+        last_time = time.time()
+
+        train_w_parameters(cmd)
+
+        print('---------------------------------------------')
+        print(i, cmd)
+        print('time used:', time.time()-last_time)
+        print()
+

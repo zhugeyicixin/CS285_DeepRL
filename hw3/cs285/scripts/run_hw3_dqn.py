@@ -18,7 +18,7 @@ class Q_Trainer(object):
             'double_q': params['double_q'],
         }
 
-        env_args = get_env_kwargs(params['env_name'])
+        env_args = get_env_kwargs(params['env_name'], lander_epsilon=params['lander_epsilon'])
 
         self.agent_params = {**train_args, **env_args, **params}
 
@@ -55,6 +55,13 @@ def main():
     parser.add_argument('--num_agent_train_steps_per_iter', type=int, default=1)
     parser.add_argument('--num_critic_updates_per_agent_update', type=int, default=1)
     parser.add_argument('--double_q', action='store_true')
+    parser.add_argument('--lander_epsilon', type=float, default=0.02)
+
+    # parameters for parallelization
+    # on the same core, use num_envs_per_core as batch size to generate actions using policy
+    parser.add_argument('--num_envs_per_core', type=int, default=16)
+    # steps collected per eval iteration
+    parser.add_argument('--num_cores', type=int, default=1)
 
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--no_gpu', '-ngpu', action='store_true')
