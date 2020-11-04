@@ -1,5 +1,6 @@
 from typing import Union
 
+import numpy as np
 import torch
 from torch import nn
 
@@ -71,8 +72,8 @@ def set_device(gpu_id):
     torch.cuda.set_device(gpu_id)
 
 
-def from_numpy(*args, **kwargs):
-    return torch.from_numpy(*args, **kwargs).float().to(device)
+def from_numpy(num_var, dtype=np.float32):
+    return torch.from_numpy(np.array(num_var, dtype=dtype)).to(device)
 
 
 def to_numpy(tensor):

@@ -1,8 +1,10 @@
 from collections import OrderedDict
+import warnings
 import pickle
 import os
 import sys
 import time
+import json
 
 import gym
 from gym import wrappers
@@ -119,6 +121,7 @@ class RL_Trainer(object):
         # init vars at beginning of training
         self.total_envsteps = 0
         self.start_time = time.time()
+        hist_logs = []
 
         print_period = 1
 
@@ -169,18 +172,38 @@ class RL_Trainer(object):
             if self.logvideo or self.logmetrics:
                 # perform logging
                 print('\nBeginning logging procedure...')
-                self.perform_logging(itr, paths, eval_policy, train_video_paths, all_logs)
+                logs = self.perform_logging(itr, paths, eval_policy, train_video_paths, all_logs)
 
                 if self.params['save_params']:
                     self.agent.save('{}/agent_itr_{}.pt'.format(self.params['logdir'], itr))
 
+                if isinstance(logs, dict):
+                    logs['itr'] = itr
+                    for k in logs:
+                        if isinstance(logs[k], np.object):
+                            logs[k] = float(logs[k])
+                    hist_logs.append(logs)
+
+                with open(
+                    'cs285/data/{}.json'.format(self.params['exp_name']),
+                    'w'
+                ) as fw:
+                    json.dump(hist_logs, fw, indent=2)
+
     ####################################
     ####################################
 
-    def collect_training_trajectories(self, itr, initial_expertdata, collect_policy, num_transitions_to_sample, save_expert_data_to_disk=False):
+    def collect_training_trajectories(
+        self,
+        itr,
+        initial_expertdata,
+        collect_policy,
+        num_transitions_to_sample,
+        save_expert_data_to_disk=False
+    ):
         """
         :param itr:
-        :param load_initial_expertdata:  path to expert data pkl file
+        :param initial_expertdata:  path to expert data pkl file
         :param collect_policy:  the current policy using which we collect data
         :param num_transitions_to_sample:  the number of transitions we collect
         :return:
@@ -190,10 +213,76 @@ class RL_Trainer(object):
         """
         # TODO: get this from Piazza
 
+        paths = []
+        envsteps_this_batch = 0
+
+        if (itr == 0 and initial_expertdata is not None):
+            if os.path.exists(initial_expertdata):
+                expert_paths = pickle.load(open(initial_expertdata, 'rb'))
+                paths.extend(expert_paths)
+                envsteps_this_batch += sum([utils.get_pathlength(p) for p in expert_paths])
+            else:
+                warnings.warn(
+                    "load_initial_expertdata file {} not found!".format(
+                        initial_expertdata
+                    )
+                )
+            return paths, envsteps_this_batch, None
+
+        if (iter == 0 and save_expert_data_to_disk):
+            num_transitions_to_sample = self.params['batch_size_initial']
+
+        if envsteps_this_batch < num_transitions_to_sample:
+            # HINT1: use sample_trajectories from utils
+            # HINT2: you want each of these collected rollouts to be of length self.params['ep_len']
+            print("\nCollecting data to be used for training...")
+            exp_paths, exp_envsteps = utils.sample_trajectories_mp(
+                env=self.env,
+                policy=collect_policy,
+                min_timesteps_per_batch=num_transitions_to_sample-envsteps_this_batch,
+                max_path_length=self.params['ep_len'],
+                render=False,
+                num_envs_per_core=self.params['num_envs_per_core'],
+                num_cores=self.params['num_cores'],
+            )
+            paths.extend(exp_paths)
+            envsteps_this_batch += exp_envsteps
+
+        # collect more rollouts with the same policy, to be saved as videos in tensorboard
+        # note: here, we collect MAX_NVIDEO rollouts, each of length MAX_VIDEO_LEN
+        train_video_paths = None
+        if self.logvideo:
+            print('\nCollecting train rollouts to be used for saving videos...')
+            train_video_paths = utils.sample_n_trajectories(self.env, collect_policy, MAX_NVIDEO, MAX_VIDEO_LEN, True)
+
+        if save_expert_data_to_disk and itr == 0:
+            with open('expert_data_{}.pkl'.format(self.params['env_name']), 'wb') as file:
+                pickle.dump(paths, file)
+
         return paths, envsteps_this_batch, train_video_paths
 
     def train_agent(self):
-    # TODO: get this from Piazza
+        # TODO: get this from Piazza
+        train_logs = []
+        for train_step in range(self.params['num_agent_train_steps_per_iter']):
+
+            # HINT1: use the agent's sample function
+            # HINT2: how much data = self.params['train_batch_size']
+            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self.agent.sample(
+                batch_size=self.params['train_batch_size']
+            )
+
+            # HINT: use the agent's train function
+            # HINT: keep the agent's training log for debugging
+            train_log = self.agent.train(
+                ob_no=ob_batch,
+                ac_na=ac_batch,
+                re_n=re_batch,
+                next_ob_no=next_ob_batch,
+                terminal_n=terminal_batch,
+            )
+            train_logs.append(train_log)
+        return train_logs
 
     ####################################
     ####################################
@@ -205,7 +294,15 @@ class RL_Trainer(object):
 
         # collect eval trajectories, for logging
         print("\nCollecting data for eval...")
-        eval_paths, eval_envsteps_this_batch = utils.sample_trajectories(self.env, eval_policy, self.params['eval_batch_size'], self.params['ep_len'])
+        eval_paths, eval_envsteps_this_batch = utils.sample_trajectories_mp(
+            env=self.env,
+            policy=eval_policy,
+            min_timesteps_per_batch=self.params['eval_batch_size'],
+            max_path_length=self.params['ep_len'],
+            render=False,
+            num_envs_per_core=self.params['num_envs_per_core'],
+            num_cores=self.params['num_cores'],
+        )
 
         # save eval rollouts as videos in tensorboard event file
         if self.logvideo and train_video_paths != None:
@@ -217,7 +314,7 @@ class RL_Trainer(object):
             self.logger.log_paths_as_videos(train_video_paths, itr, fps=self.fps, max_videos_to_save=MAX_NVIDEO,
                                             video_title='train_rollouts')
             self.logger.log_paths_as_videos(eval_video_paths, itr, fps=self.fps,max_videos_to_save=MAX_NVIDEO,
-                                            video_title='eval_rollouts')
+                                             video_title='eval_rollouts')
 
         #######################
 
@@ -260,6 +357,9 @@ class RL_Trainer(object):
             print('Done logging...\n\n')
 
             self.logger.flush()
+
+            return logs
+
 
     def log_model_predictions(self, itr, all_logs):
         # model predictions
