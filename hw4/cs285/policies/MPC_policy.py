@@ -34,9 +34,17 @@ class MPCPolicy(BasePolicy):
         # TODO(Q1) uniformly sample trajectories and return an array of
         # dimensions (num_sequences, horizon, self.ac_dim) in the range
         # [self.low, self.high]
+        random_action_sequences = np.random.uniform(
+            low=self.low,
+            high=self.high,
+            size=(num_sequences, horizon, self.ac_dim),
+        )
         return random_action_sequences
 
     def get_action(self, obs):
+
+        if obs.ndim == 2 and obs.shape[0] == 1:
+            obs = obs.squeeze(axis=0)
 
         if self.data_statistics is None:
             # print("WARNING: performing random actions.")
@@ -57,9 +65,13 @@ class MPCPolicy(BasePolicy):
         predicted_rewards = np.mean(
             predicted_sum_of_rewards_per_model, axis=0)  # [ens, N] --> N
 
-        # pick the action sequence and return the 1st element of that sequence
-        best_action_sequence = None  # TODO (Q2)
-        action_to_take = None  # TODO (Q2)
+        # # pick the action sequence and return the 1st element of that sequence
+        # best_action_sequence = None  # TODO (Q2)
+        # action_to_take = None  # TODO (Q2)
+
+        best_action_sequence = candidate_action_sequences[predicted_rewards.argmax()]
+        action_to_take = best_action_sequence[0]
+
         return action_to_take[None]  # Unsqueeze the first index
 
     def calculate_sum_of_rewards(self, obs, candidate_action_sequences, model):
@@ -75,7 +87,28 @@ class MPCPolicy(BasePolicy):
         :return: numpy array with the sum of rewards for each action sequence.
         The array should have shape [N].
         """
-        sum_of_rewards = None  # TODO (Q2)
+        rewards = []
+        # batch_observations_t: (self.N, D_obs)
+        batch_observations_t = np.repeat(np.expand_dims(obs, axis=0), self.N, axis=0)
+        for i in range(self.horizon):
+            candidate_batch_actions_t = candidate_action_sequences[:,i,:]
+            # rs: (self.N, )
+            # done: (self.N, )
+            # TODO: how to deal with dones?
+            rs, dones = self.env.get_reward(
+                observations=batch_observations_t,
+                actions=candidate_batch_actions_t,
+            )
+            rewards.append(rs)
+            batch_observations_tp1 = model.get_prediction(
+                obs=batch_observations_t,
+                acs=candidate_batch_actions_t,
+                data_statistics=self.data_statistics,
+            )
+
+            batch_observations_t = batch_observations_tp1
+
+        sum_of_rewards = np.sum(rewards, axis=0)  # TODO (Q2)
         # For each candidate action sequence, predict a sequence of
         # states for each dynamics model in your ensemble.
         # Once you have a sequence of predicted states from each model in

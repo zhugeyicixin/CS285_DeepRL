@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import json
+from pprint import pprint
 
 import gym
 from gym import wrappers
@@ -185,7 +186,7 @@ class RL_Trainer(object):
                     hist_logs.append(logs)
 
                 with open(
-                    'cs285/data/{}.json'.format(self.params['exp_name']),
+                    'data/{}.json'.format(self.params['exp_name']),
                     'w'
                 ) as fw:
                     json.dump(hist_logs, fw, indent=2)

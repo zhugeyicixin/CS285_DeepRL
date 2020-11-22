@@ -1,5 +1,6 @@
 import os
 import time
+from pprint import pprint
 
 from cs285.infrastructure.rl_trainer import RL_Trainer
 from cs285.agents.mb_agent import MBAgent

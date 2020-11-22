@@ -176,6 +176,7 @@ def sample_trajectories_batch(
         # because the reference in np.ndarry batch_last_observations[i] is fixed
         # if batch_last_observations is np.ndarray , we should use copy to record the value later
         # batch_data[i]['observations'].append(copy.deepcopy(batch_last_observations[i]))
+
         batch_new_actions = policy.get_action(np.array(batch_last_observations))
 
         for i, env in enumerate(batch_envs):

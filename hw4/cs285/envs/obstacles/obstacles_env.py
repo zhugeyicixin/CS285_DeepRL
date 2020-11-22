@@ -97,8 +97,8 @@ class Obstacles(gym.Env):
             actions: (batchsize, ac_dim) or (ac_dim,)
 
         Return:
-            r_total: reward of this (o,a) pair, dimension is (batchsize,1) or (1,)
-            done: True if env reaches terminal state, dimension is (batchsize,1) or (1,)
+            r_total: reward of this (o,a) pair, dimension is (batchsize,) or (1,)
+            done: True if env reaches terminal state, dimension is (batchsize,) or (1,)
         """
 
         #initialize and reshape as needed, for batch mode
