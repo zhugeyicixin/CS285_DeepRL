@@ -8,8 +8,12 @@ import numpy as np
 import torch
 from torch import distributions
 
+from typing import Union
+from typing import Any
+
 from cs285.infrastructure import pytorch_util as ptu
 from cs285.policies.base_policy import BasePolicy
+from cs285.infrastructure.utils import normalize
 
 
 class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
@@ -38,28 +42,40 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         self.nn_baseline = nn_baseline
 
         if self.discrete:
-            self.logits_na = ptu.build_mlp(input_size=self.ob_dim,
-                                           output_size=self.ac_dim,
-                                           n_layers=self.n_layers,
-                                           size=self.size)
+            self.logits_na = ptu.build_mlp(
+                input_size=self.ob_dim,
+                output_size=self.ac_dim,
+                n_layers=self.n_layers,
+                size=self.size,
+            )
             self.logits_na.to(ptu.device)
             self.mean_net = None
             self.logstd = None
-            self.optimizer = optim.Adam(self.logits_na.parameters(),
-                                        self.learning_rate)
+            self.optimizer = optim.Adam(
+                self.logits_na.parameters(),
+                self.learning_rate
+            )
         else:
             self.logits_na = None
-            self.mean_net = ptu.build_mlp(input_size=self.ob_dim,
-                                      output_size=self.ac_dim,
-                                      n_layers=self.n_layers, size=self.size)
-            self.logstd = nn.Parameter(
-                torch.zeros(self.ac_dim, dtype=torch.float32, device=ptu.device)
+            self.mean_net = ptu.build_mlp(
+                input_size=self.ob_dim,
+                output_size=self.ac_dim,
+                n_layers=self.n_layers,
+                size=self.size,
             )
+            # TODO: shouldn't logstd also be a NN?
+            self.logstd = nn.Parameter(torch.zeros(
+                self.ac_dim, dtype=torch.float32, device=ptu.device
+            ))
             self.mean_net.to(ptu.device)
             self.logstd.to(ptu.device)
             self.optimizer = optim.Adam(
                 itertools.chain([self.logstd], self.mean_net.parameters()),
                 self.learning_rate
+            )
+            self.normal_dist = distributions.Normal(
+                ptu.from_numpy(0.0),
+                ptu.from_numpy(1.0)
             )
 
         if nn_baseline:
@@ -86,11 +102,30 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
     # query the policy with observation(s) to get selected action(s)
     def get_action(self, obs: np.ndarray) -> np.ndarray:
-        raise NotImplementedError
-        # TODO: get this from hw1
+        # TODO: get this from Piazza
 
-    ####################################
-    ####################################
+        if len(obs.shape) > 1:
+            observation = obs
+        else:
+            observation = obs[None]
+
+        action = ptu.to_numpy(self._get_action(observation))
+
+        return action
+
+    def _get_action(self, obs: np.ndarray) -> torch.Tensor:
+
+        acs = self.forward(obs)
+        if self.discrete:
+            # the out in gym descrete is an index of action
+            sampler = distributions.Categorical(logits=acs)
+            acs = sampler.sample()
+        else:
+            # sample a N(0, 1) normal distribution
+            epsilon = self.normal_dist.sample(acs.shape)
+            acs = acs + epsilon * torch.exp(self.logstd)
+        return acs
+
 
     # update/train this policy
     def update(self, observations, actions, **kwargs):
@@ -101,12 +136,22 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # through it. For example, you can return a torch.FloatTensor. You can also
     # return more flexible objects, such as a
     # `torch.distributions.Distribution` object. It's up to you!
-    def forward(self, observation: torch.FloatTensor):
-        raise NotImplementedError
-        # TODO: get this from hw1
+    def forward(
+        self,
+        observation: Union[np.ndarray, torch.Tensor]
+    ) -> Any:
 
-    ####################################
-    ####################################
+        if not isinstance(observation, torch.Tensor):
+            observation = ptu.from_numpy(observation)
+
+        if self.discrete:
+            # output logits
+            output = self.logits_na(observation)
+        else:
+            # output mean
+            output = self.mean_net(observation)
+
+        return output
 
 
 #####################################################

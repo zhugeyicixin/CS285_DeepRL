@@ -418,6 +418,7 @@ class Pointmass(gym.Env):
     return (self._walls[i, j] == 1)
 
   def step(self, action):
+    action = int(action)
     self.timesteps_left -= 1
     action = np.array(ACT_DICT[action])
     action = np.random.normal(action, self.action_noise)
