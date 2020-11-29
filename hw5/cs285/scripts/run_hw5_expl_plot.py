@@ -532,11 +532,11 @@ def plot_lr_q3_3():
         data_2 = json.load(fr)
     data_2 = pd.DataFrame(data_2)
 
-    with open('../../data/good/q2_cql_numsteps_15000.json', 'r') as fr:
+    with open('../../data/good/q2_cql.json', 'r') as fr:
         data_3 = json.load(fr)
     data_3 = pd.DataFrame(data_3)
 
-    with open('../../data/good/q2_dqn_numsteps_15000.json', 'r') as fr:
+    with open('../../data/good/q2_dqn.json', 'r') as fr:
         data_4 = json.load(fr)
     data_4 = pd.DataFrame(data_4)
 

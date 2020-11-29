@@ -72,8 +72,8 @@ def set_device(gpu_id):
     torch.cuda.set_device(gpu_id)
 
 
-def from_numpy(num_var, *args, **kwargs):
-    return torch.from_numpy(np.array(num_var), *args, **kwargs).float().to(device)
+def from_numpy(num_var, dtype=np.float32):
+    return torch.from_numpy(np.array(num_var, dtype=dtype)).to(device)
 
 
 def to_numpy(tensor):
