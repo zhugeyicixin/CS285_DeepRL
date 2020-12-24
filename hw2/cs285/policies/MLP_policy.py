@@ -201,7 +201,7 @@ class MLPPolicyPG(MLPPolicy):
         loss = - torch.mean(torch.sum(log_pi * advantages, dim=-1), dim=0)
         if n_rollouts is not None and advantages.dim() == 1:
             # all rollouts are concatenated, manually divided by n_rollouts to get average
-            log_pi /= n_rollouts
+            loss /= n_rollouts
 
         # TODO: optimize `loss` using `self.optimizer`
         # HINT: remember to `zero_grad` first
